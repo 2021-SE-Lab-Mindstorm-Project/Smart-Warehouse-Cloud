@@ -22,12 +22,14 @@ from rest_framework import routers, permissions
 import cloud.api
 
 router = routers.DefaultRouter()
-router.register('inventory', cloud.api.InventoryViewSet)
-router.register('order', cloud.api.OrderViewSet)
 router.register('sensory', cloud.api.SensoryViewSet)
+router.register('classification', cloud.api.ClassificationViewSet)
+router.register('repository', cloud.api.RepositoryViewSet)
+router.register('shipment', cloud.api.ShipmentViewSet)
+router.register('order', cloud.api.OrderViewSet)
 
 schema_url_patterns = [
-    path('api/v1/', include((router.urls, 'cloud'), namespace='api')),
+    path('', include((router.urls, 'cloud'), namespace='api')),
 ]
 
 schema_view = get_schema_view(
@@ -42,7 +44,7 @@ schema_view = get_schema_view(
 )
 
 urlpatterns = [
-    path('api/v1/', include((router.urls, 'cloud'), namespace='api')),
-    path('', RedirectView.as_view(url='api/v1/doc')),
-    path('api/v1/doc/', schema_view.with_ui('swagger', cache_timeout=0)),
+    path('', RedirectView.as_view(url='doc')),
+    path('', include((router.urls, 'cloud'), namespace='api')),
+    path('doc/', schema_view.with_ui('swagger', cache_timeout=0)),
 ]

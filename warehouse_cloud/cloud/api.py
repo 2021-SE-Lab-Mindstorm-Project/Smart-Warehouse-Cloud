@@ -1,6 +1,27 @@
-from rest_framework import serializers, viewsets
+from datetime import datetime, timedelta
 
-from .models import Inventory, Order, Sensory
+import requests
+from drf_yasg import openapi
+from drf_yasg.utils import swagger_auto_schema
+from rest_framework import serializers, viewsets
+from rest_framework.decorators import action
+from rest_framework.response import Response
+
+from .models import Sensory, Inventory, Order
+
+
+# Serializer
+class SensoryListSerializer(serializers.ListSerializer):
+    def create(self, validated_data):
+        sensory_data_list = [Sensory(**item) for item in validated_data]
+        return Sensory.objects.bulk_create(sensory_data_list)
+
+
+class SensorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Sensory
+        fields = '__all__'
+        list_serializer_class = SensoryListSerializer
 
 class InventorySerializer(serializers.ModelSerializer):
     class Meta:
@@ -12,22 +33,114 @@ class OrderSerializer(serializers.ModelSerializer):
         model = Order
         fields = '__all__'
 
-class SensorySerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Sensory
-        fields = '__all__'
-
-
-class InventoryViewSet(viewsets.ModelViewSet):
-    queryset = Inventory.objects.all()
-    serializer_class = InventorySerializer
-
-
-class OrderViewSet(viewsets.ModelViewSet):
-    queryset = Order.objects.all()
-    serializer_class = OrderSerializer
-
+# Sensory Data
 class SensoryViewSet(viewsets.ModelViewSet):
     queryset = Sensory.objects.all()
     serializer_class = SensorySerializer
     http_method_names = ['get', 'post']
+
+    @swagger_auto_schema(responses={400: "Bad Request"})
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data, many=isinstance(request.data, list))
+        serializer.is_valid(raise_exception=True)
+
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, headers=headers)
+
+    sensorID_parameter = openapi.Parameter('sensorID', openapi.IN_QUERY, description="ID of the sensor",
+                                           type=openapi.TYPE_STRING, required=True)
+    time_parameter = openapi.Parameter('time', openapi.IN_QUERY, description="search time limitation in minutes",
+                                       required=False, type=openapi.TYPE_INTEGER)
+
+    @swagger_auto_schema(manual_parameters=[sensorID_parameter, time_parameter])
+    def list(self, request, *args, **kwargs):
+        sensorID = request.data['sensorID']
+        queryset = self.queryset.filter(sensorID__exact=sensorID)
+
+        if request.query_params.get('date'):
+            queryset = queryset.filter(
+                datetime__gt=datetime.now() - timedelta(minutes=int(request.query_params.get('time'))))
+
+        serializer = SensorySerializer(queryset, many=True)
+        return Response(serializer.data)
+
+
+# Customer View
+class OrderViewSet(viewsets.ModelViewSet):
+    queryset = Order.objects.all()
+    serializer_class = OrderSerializer
+    http_method_names = ['get', 'post']
+
+    @swagger_auto_schema(responses={400: "Bad Request"})
+    def create(self, request, *args, **kwargs):
+        response = super().create(request, *args, **kwargs)
+
+        # requests.post('143.248.41.213', data=response.data)
+        # requests.post('143.248.41.213', data=response.data)
+
+        order_data = Order.objects.filter(id=response.data['id'])[0]
+        order_data.status += 1
+        order_data.save()
+
+        serializer = OrderSerializer(order_data)
+        return Response(serializer.data, status=201)
+
+
+# Item Stored Ack
+class ClassificationViewSet(viewsets.ViewSet):
+    queryset = Inventory.objects.all()
+    http_method_names = ['put']
+
+    @swagger_auto_schema()
+    def update(self, request, *args, **kwargs):
+        item_type = kwargs['pk']
+
+        # Modify Inventory DB
+        target_item = Inventory.objects.filter(id=item_type)[0]
+        target_item.value += 1
+        target_item.updated = datetime.now()
+        target_item.save()
+        serializer = InventorySerializer(target_item)
+
+        return Response(serializer.data, status=201)
+
+# Item Processed Ack
+class RepositoryViewSet(viewsets.ViewSet):
+    queryset = Inventory.objects.all()
+    http_method_names = ['put']
+
+    @swagger_auto_schema()
+    def update(self, request, *args, **kwargs):
+        item_type = kwargs['pk']
+
+        # Modify Inventory DB
+        target_item = Inventory.objects.filter(id=item_type)[0]
+        target_item.value -= 1
+        target_item.updated = datetime.now()
+        target_item.save()
+        inventory_serializer = InventorySerializer(target_item)
+
+        # Modify Order DB
+        target_order = Order.objects.filter(item_type=item_type, status=2)[0]
+        target_order.status = 3
+        target_order.save()
+        order_serializer = OrderSerializer(target_order)
+
+        return Response([inventory_serializer.data, order_serializer.data], status=201)
+
+class ShipmentViewSet(viewsets.ViewSet):
+    queryset = Order.objects.all()
+    http_method_names = ['put']
+
+    @swagger_auto_schema()
+    def update(self, request, *args, **kwargs):
+        item_type = kwargs['pk']
+
+        # Modify Order DB
+        target_order = Order.objects.filter(item_type=item_type, status=3)[0]
+        target_order.status = 4
+        target_order.save()
+        order_serializer = OrderSerializer(target_order)
+
+        return Response(order_serializer.data, status=201)
