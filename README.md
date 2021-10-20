@@ -1,81 +1,57 @@
 # Cloud Server
+## Overall Description
+The cloud server has three components, messaging system, database, and acting system.
 
-The cloud accepts connections to the server via sockets. Ports `27000`, `27001`, and `27002` are open for connection.
+### Messaging System
+Messaging system gets the messages from edge servers using Django REST framework.
+Messages from the edge server are considered as a data that can be stores in the cloud server.
+Here are the lists of the messages that edge server sends to the cloud.
 
-* Sorting Edge  (212) : 27000 port
-* Storage Edge  (213) : 27001 port
-* Shipment Edge (214) : 27002 port
+* Item stored acknowledgement (Classification Edge)
+* Order processed acknowledgement (Repository Edge)
+* Order processed acknowledgement (Shipment Edge)
+* Store sensory data (All)
 
-To start the server:
-
-1. Connect to the VM
-2. Navigate to the socket folder `cd itrc-cloud/`
-3. Run `python3 server.py`
-
-## Database
-
-MongoDB is used for the implementation.
-
-### SensorDB
-
-|Fields|Type|Remarks|
+### Database
+Database is based on the SQLite 3, with django. Here are the databases of the cloud server.
+### Inventory
+|Fields|Type|Choices|
 |-------|-----|-----|
-|time_stamp|timestamp||
-|ev3_id|int|
-|sensor_type|string|color, sonar|
-|value|float|
+|item_type|Char|Red, White, Yellow|
+|value|Int||
+|updated|Datetime||
 
-### Order DB
-
-|Fields|Type|Remarks|
-|-------|-----|----|
-|color|string|Red, Blue, Green|
-|item|int|match item in storage db
-|status|int|0 : order received|
-|      |   |1 : requested storage to release, not released yet)|
-|      |   |2 : released from storage, not requested shipment yet|
-|      |   |3 : requested shipment edge to ship, not shipped yet|
-|      |   |4 : order completed|
-
-### Storage DB
-
-|Fields|Type|Remarks|
+### Order
+|Fields|Type|Choices|
 |-------|-----|-----|
-|color|string|Red, Blue, Green|
-|stored|boolean|True, False|
-|wear_time|timestamp| |
+|order_made|Datetime||
+|order_completed|Datetime||
+|item_type|Char|Red, White, Yellow|
+|order_status|Int|Order Status|
 
-To access DB with GUI
+#### Order Status
+1. Order Received
+2. Repository Processing
+3. Shipment Processing
+4. Order Completed
 
-1. Download `MongoDB Compass` from <https://www.mongodb.com/try/download/compass> and install
-2. Select `Fill in connection fields individually`
-3. In `Hostname` tab,
-    * Hostname : localhost
-    * Port : 27018
-4. In `More Options` tab,
-    * SSH Tunnel : Use Password
-    * SSH Hostname : 169.56.76.12
-    * SSH Tunnel Port : 22
-    * SSH Username : teamleader
-    * SSH Password : &lt;password&gt;
+### Sensory
+|Fields|Type|Choices|
+|-------|-----|-----|
+|sensorID|Char||
+|value|Float||
+|datetime|Datetime||
 
-## Web Server
+### Acting System
+In progress.
 
-The web server is implemented by using Flask. The web server allows the customer to send an order by selecting the color
-and the destination or to check current stocks.
-
-To start the flask server:
-
-1. Connect to the VM
-2. Navigate to the flask folder `cd itrc-cloud/test/flask/`
-3. Run `sudo python3 app.py` on the server to start the web server
-4. Browse to `http://169.56.76.12:55555/` from a web browser
-
-###  
-
-This part of product may contain the following open source software.
-
-- Semantic-UI
-    - License: MIT License
-    - Copyright Notice:
-    - Download Site: https://github.com/Semantic-Org/Semantic-UI
+## Run the cloud server
+This is the manual for running the cloud server.
+1. Clone this repository `git clone https://github.com/2021-SE-Lab-Mindstorm-Project/Smart-Warehouse-Cloud`
+2. Move to `Smart-Warehouse-Cloud`
+3. Make `secrets.json` with `{"django_secret_key": "YOUR_KEY"}`
+4. Make python venv with `requirements.txt`
+5. Move to `warehouse_cloud`
+6. `python manage.py migrate`
+7. `python manage.py runserver 0.0.0.0:80`
+8. In progress.
