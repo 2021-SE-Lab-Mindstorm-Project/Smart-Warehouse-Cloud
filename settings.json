@@ -1,4 +1,6 @@
 {
   "address": "169.56.76.12",
-  "timezone": "Asia/Seoul"
+  "timezone": "Asia/Seoul",
+  "edge_repository_address": "http://143.248.41.213",
+  "edge_shipment_address": "http://143.248.41.214"
 }

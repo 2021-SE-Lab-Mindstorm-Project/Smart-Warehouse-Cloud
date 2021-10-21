@@ -23,13 +23,11 @@ import cloud.api
 
 router = routers.DefaultRouter()
 router.register('sensory', cloud.api.SensoryViewSet)
-router.register('classification', cloud.api.ClassificationViewSet)
-router.register('repository', cloud.api.RepositoryViewSet)
-router.register('shipment', cloud.api.ShipmentViewSet)
+router.register('message', cloud.api.MessageViewSet)
 router.register('order', cloud.api.OrderViewSet)
 
 schema_url_patterns = [
-    path('', include((router.urls, 'cloud'), namespace='api')),
+    path('api/', include((router.urls, 'cloud'), namespace='api')),
 ]
 
 schema_view = get_schema_view(
@@ -45,6 +43,6 @@ schema_view = get_schema_view(
 
 urlpatterns = [
     path('', RedirectView.as_view(url='doc')),
-    path('', include((router.urls, 'cloud'), namespace='api')),
-    path('doc/', schema_view.with_ui('swagger', cache_timeout=0)),
+    path('api/', include((router.urls, 'cloud'), namespace='api')),
+    path('api/doc/', schema_view.with_ui('swagger', cache_timeout=0)),
 ]

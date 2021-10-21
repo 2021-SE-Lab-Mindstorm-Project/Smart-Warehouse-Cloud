@@ -4,10 +4,11 @@ import requests
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import serializers, viewsets
-from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from .models import Sensory, Inventory, Order
+from warehouse_cloud.settings import settings
+from . import models
+from .models import Sensory, Inventory, Order, Message
 
 
 # Serializer
@@ -23,15 +24,18 @@ class SensorySerializer(serializers.ModelSerializer):
         fields = '__all__'
         list_serializer_class = SensoryListSerializer
 
-class InventorySerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Inventory
-        fields = '__all__'
 
 class OrderSerializer(serializers.ModelSerializer):
     class Meta:
         model = Order
         fields = '__all__'
+
+
+class MessageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Message
+        fields = '__all__'
+
 
 # Sensory Data
 class SensoryViewSet(viewsets.ModelViewSet):
@@ -76,8 +80,11 @@ class OrderViewSet(viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
         response = super().create(request, *args, **kwargs)
 
-        # requests.post('143.248.41.213', data=response.data)
-        # requests.post('143.248.41.213', data=response.data)
+        order_message = {'sender': models.CLOUD,
+                         'title': 'Order Created',
+                         'msg': response.data}
+        requests.post(settings['edge_repository_address'] + '/api/message/', data=order_message)
+        requests.post(settings['edge_shipment_address'] + '/api/message/', data=order_message)
 
         order_data = Order.objects.filter(id=response.data['id'])[0]
         order_data.status += 1
@@ -87,60 +94,69 @@ class OrderViewSet(viewsets.ModelViewSet):
         return Response(serializer.data, status=201)
 
 
-# Item Stored Ack
-class ClassificationViewSet(viewsets.ViewSet):
-    queryset = Inventory.objects.all()
-    http_method_names = ['put']
+class MessageViewSet(viewsets.ModelViewSet):
+    queryset = Message.objects.all()
+    http_method_names = ['post']
 
-    @swagger_auto_schema()
-    def update(self, request, *args, **kwargs):
-        item_type = kwargs['pk']
+    @swagger_auto_schema(responses={400: "Bad request / Invalid Message Title / Invalid Message Sender"})
+    def create(self, request, *args, **kwargs):
+        super().create(request, *args, **kwargs)
+        sender = request.data['sender']
 
-        # Modify Inventory DB
-        target_item = Inventory.objects.filter(id=item_type)[0]
-        target_item.value += 1
-        target_item.updated = datetime.now()
-        target_item.save()
-        serializer = InventorySerializer(target_item)
+        if sender == models.EDGE_CLASSIFICATION:
+            title = request.data['title']
 
-        return Response(serializer.data, status=201)
+            if title == 'Item Stored':
+                item_type = request['msg']['item_type']
 
-# Item Processed Ack
-class RepositoryViewSet(viewsets.ViewSet):
-    queryset = Inventory.objects.all()
-    http_method_names = ['put']
+                # Modify Inventory DB
+                target_item = Inventory.objects.filter(id=item_type)[0]
+                target_item.value += 1
+                target_item.updated = datetime.now()
+                target_item.save()
 
-    @swagger_auto_schema()
-    def update(self, request, *args, **kwargs):
-        item_type = kwargs['pk']
+                return Response(status=200)
 
-        # Modify Inventory DB
-        target_item = Inventory.objects.filter(id=item_type)[0]
-        target_item.value -= 1
-        target_item.updated = datetime.now()
-        target_item.save()
-        inventory_serializer = InventorySerializer(target_item)
+            else:
+                return Response({400: "Invalid Message Title"})
 
-        # Modify Order DB
-        target_order = Order.objects.filter(item_type=item_type, status=2)[0]
-        target_order.status = 3
-        target_order.save()
-        order_serializer = OrderSerializer(target_order)
+        elif sender == models.EDGE_REPOSITORY:
+            title = request.data['title']
 
-        return Response([inventory_serializer.data, order_serializer.data], status=201)
+            if title == 'Order Processed':
+                item_type = request['msg']['item_type']
 
-class ShipmentViewSet(viewsets.ViewSet):
-    queryset = Order.objects.all()
-    http_method_names = ['put']
+                # Modify Inventory DB
+                target_item = Inventory.objects.filter(id=item_type)[0]
+                target_item.value -= 1
+                target_item.updated = datetime.now()
+                target_item.save()
 
-    @swagger_auto_schema()
-    def update(self, request, *args, **kwargs):
-        item_type = kwargs['pk']
+                # Modify Order DB
+                target_order = Order.objects.filter(item_type=item_type, status=2)[0]
+                target_order.status = 3
+                target_order.save()
 
-        # Modify Order DB
-        target_order = Order.objects.filter(item_type=item_type, status=3)[0]
-        target_order.status = 4
-        target_order.save()
-        order_serializer = OrderSerializer(target_order)
+                return Response(status=200)
 
-        return Response(order_serializer.data, status=201)
+            else:
+                return Response({400: "Invalid Message Title"})
+
+        elif sender == models.EDGE_SHIPMENT:
+            title = request.data['title']
+
+            if title == 'Order Processed':
+                item_type = kwargs['pk']
+
+                # Modify Order DB
+                target_order = Order.objects.filter(item_type=item_type, status=3)[0]
+                target_order.status = 4
+                target_order.save()
+
+                return Response(status=200)
+
+            else:
+                return Response({400: "Invalid Message Title"})
+
+        else:
+            return Response({400: "Invalid Message Sender"})
