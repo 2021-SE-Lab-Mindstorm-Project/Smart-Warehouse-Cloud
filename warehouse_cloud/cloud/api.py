@@ -96,6 +96,7 @@ class OrderViewSet(viewsets.ModelViewSet):
 
 class MessageViewSet(viewsets.ModelViewSet):
     queryset = Message.objects.all()
+    serializer_class = MessageSerializer
     http_method_names = ['post']
 
     @swagger_auto_schema(responses={400: "Bad request / Invalid Message Title / Invalid Message Sender"})
