@@ -8,10 +8,7 @@ Messages from the edge server are considered as a data that can be stores in the
 Here are the lists of the messages that edge server sends to the cloud.
 
 * Item stored acknowledgement (Classification Edge)
-  * `/classification/{item_type}/` with `put` method
 * Order processed acknowledgement (Repository, Shipment Edge)
-  * `/repository/{item_type}/` with `put` method
-  * `/shipment/{item_type}` with `put` method
 * Store sensory data (All)
   * `/sensory/` with `post` method
 
@@ -53,11 +50,14 @@ Database is based on the SQLite 3, with django. Here are the databases of the cl
 |datetime|Datetime||
 
 ## Run the cloud server
-This is the manual for running the cloud server.
+### Prerequisite
+* Python 3.9
+### Running Manual
 1. Clone this repository `git clone https://github.com/2021-SE-Lab-Mindstorm-Project/Smart-Warehouse-Cloud`
 2. Move to `Smart-Warehouse-Cloud`
 3. Make `secrets.json` with `{"django_secret_key": "YOUR_KEY"}`
-4. Make python venv with `requirements.txt`
-5. Move to `warehouse_cloud`
-6. `python manage.py migrate`
-7. `python manage.py runserver 0.0.0.0:80`
+4. Configure `settings.json` with appropriate values.
+5. Make python venv and install requirements with `requirements.txt`
+6. Move to `warehouse_cloud` folder.
+7. `python manage.py migrate`
+8. `python manage.py runserver 0.0.0.0:80`
