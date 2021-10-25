@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <style>
+
+        .start-stop-zone, .order-zone {
+            text-align: center;
+        }
+
+        .block {
+            display: inline-block;
+            width: 40%;
+            border: #000;
+            background-color: #04AA6D;
+            color: white;
+            padding: 14px 28px;
+            font-size: 30px;
+            cursor: pointer;
+            text-align: center;
+            margin: 20px 2%;
+        }
+
+        .block.order {
+            width: 25%
+        }
+
+        .block.start {
+            background-color: #8471BF
+        }
+
+        .block.start:hover {
+            background-color: #2C2640
+        }
+
+        .block.stop {
+            background-color: #5EBF9B
+        }
+
+        .block.stop:hover {
+            background-color: #1F4034
+        }
+
+        .block.red {
+            background-color: #BF604B
+        }
+
+        .block.red:hover {
+            background-color: #402019
+        }
+
+        .block.white {
+            background-color: #999
+        }
+
+        .block.white:hover {
+            background-color: #444
+        }
+
+        .block.yellow {
+            background-color: #BFB554
+        }
+
+        .block.yellow:hover {
+            background-color: #403C1C
+        }
+
+        .block:hover {
+            color: white;
+        }
+    </style>
+    <title>Smart Warehouse</title>
+</head>
+<body>
+<div class="start-stop-zone">
+    <button class="block start" onclick="start_stop('Start')" type="button">Start</button>
+    <button class="block stop" onclick="start_stop('Stop')" type="button">Stop</button>
+</div>
+<div class="order-zone">
+    <div class="order-red">
+        <button class="block order red" onclick="order_item(1, 1)" type="button">Order Red to dest. 1</button>
+        <button class="block order red" onclick="order_item(1, 2)" type="button">Order Red to dest. 2</button>
+        <button class="block order red" onclick="order_item(1, 3)" type="button">Order Red to dest. 3</button>
+    </div>
+    <div class="order-white">
+        <button class="block order white" onclick="order_item(2, 1)" type="button">Order White to dest. 1</button>
+        <button class="block order white" onclick="order_item(2, 2)" type="button">Order White to dest. 2</button>
+        <button class="block order white" onclick="order_item(2, 3)" type="button">Order White to dest. 3</button>
+    </div>
+    <div class="order-yellow">
+        <button class="block order yellow" onclick="order_item(3, 1)" type="button">Order Yellow to dest. 1</button>
+        <button class="block order yellow" onclick="order_item(3, 2)" type="button">Order Yellow to dest. 2</button>
+        <button class="block order yellow" onclick="order_item(3, 3)" type="button">Order Yellow to dest. 3</button>
+    </div>
+</div>
+</body>
+<script>
+    colors = {1: "red", 2: "white", 3: "yellow"}
+
+    function start_stop(value) {
+        let opts = {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                sender: 0,
+                title: value,
+            })
+        }
+
+        fetch(window.location.href + "api/message/", opts);
+
+        if (value === "Start") {
+            alert("The app is started")
+        } else {
+            alert("The app is stopped")
+        }
+
+    }
+
+    function order_item(item, dest) {
+        let opts = {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                item_type: item,
+                dest: dest,
+            })
+        }
+
+        fetch(window.location.href + "api/order/", opts);
+        alert("Order is created for " + colors[item] + " to destination" + dest)
+    }
+
+</script>
+</html>

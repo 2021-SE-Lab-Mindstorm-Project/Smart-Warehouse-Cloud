@@ -14,12 +14,12 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.urls import path, include
-from django.views.generic import RedirectView
 from drf_yasg import openapi
 from drf_yasg.views import get_schema_view
 from rest_framework import routers, permissions
 
 import cloud.api
+from cloud import views
 
 router = routers.DefaultRouter()
 router.register('sensory', cloud.api.SensoryViewSet)
@@ -42,7 +42,7 @@ schema_view = get_schema_view(
 )
 
 urlpatterns = [
-    path('', RedirectView.as_view(url='api/doc')),
+    path('', cloud.views.index, name='index'),
     path('api/', include((router.urls, 'cloud'), namespace='api')),
     path('api/doc/', schema_view.with_ui('swagger', cache_timeout=0)),
 ]
