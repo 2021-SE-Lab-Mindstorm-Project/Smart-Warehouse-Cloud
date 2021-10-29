@@ -154,12 +154,12 @@ class MessageViewSet(viewsets.ModelViewSet):
 
         elif sender == models.EDGE_CLASSIFICATION:
             if title == 'Classification Processed':
-                item_type = int(request.data['msg'])
+                msg = json.loads(request.data['msg'])
+                item_type = int(msg['item_type'])
+                stored = int(msg['stored'])
 
                 # Modify Inventory DB
-                target_item = Inventory.objects.filter(item_type=item_type)[0]
-                target_item.value += 1
-                target_item.updated = datetime.now()
+                target_item = Inventory(item_type=item_type, stored=stored)
                 target_item.save()
 
                 return Response(status=201)
@@ -168,16 +168,17 @@ class MessageViewSet(viewsets.ModelViewSet):
 
         elif sender == models.EDGE_REPOSITORY:
             if title == 'Order Processed':
-                item_type = int(request.data['msg'])
+                msg = json.loads(request.data['msg'])
+                item_type = int(msg['item_type'])
+                stored = int(msg['stored'])
+                dest = int(msg['dest'])
 
                 # Modify Inventory DB
-                target_item = Inventory.objects.filter(item_type=item_type)[0]
-                target_item.value -= 1
-                target_item.updated = datetime.now()
-                target_item.save()
+                target_item = Inventory.objects.filter(item_type=item_type, stored=stored)[0]
+                target_item.delete()
 
                 # Modify Order DB
-                target_order = Order.objects.filter(item_type=item_type, status=2)[0]
+                target_order = Order.objects.filter(item_type=item_type, status=2, dest=dest)[0]
                 target_order.status = 3
                 target_order.save()
 

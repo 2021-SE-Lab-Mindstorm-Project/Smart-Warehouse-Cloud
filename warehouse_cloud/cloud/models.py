@@ -5,10 +5,12 @@ from django.db import models
 RED = 1
 WHITE = 2
 YELLOW = 3
+GREEN = 4
 item_type_choices = [
     (RED, 'Red'),
     (WHITE, 'White'),
     (YELLOW, 'Yellow'),
+    (GREEN, 'Green')
 ]
 
 LEFT = 1
@@ -23,7 +25,7 @@ dest_choices = [
 
 class Inventory(models.Model):
     item_type = models.IntegerField(choices=item_type_choices)
-    value = models.IntegerField()
+    stored = models.IntegerField(choices=dest_choices)
     updated = models.DateTimeField(auto_now=datetime.datetime.now)
 
 
