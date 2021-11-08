@@ -113,6 +113,13 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+CRONJOBS = [
+    ('* * * * *', 'cloud.rv.run', [10], {}, '>> ' + str(BASE_DIR) + '/cron.log'),
+    ('* * * * *', 'cloud.rv.run', [25], {}, '>> ' + str(BASE_DIR) + '/cron.log'),
+    ('* * * * *', 'cloud.rv.run', [40], {}, '>> ' + str(BASE_DIR) + '/cron.log'),
+    ('* * * * *', 'cloud.rv.run', [55], {}, '>> ' + str(BASE_DIR) + '/cron.log'),
+]
+
 # Internationalization
 # https://docs.djangoproject.com/en/3.2/topics/i18n/
 

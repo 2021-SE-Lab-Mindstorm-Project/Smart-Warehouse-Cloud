@@ -89,3 +89,8 @@ class Message(models.Model):
 class Status(models.Model):
     status = models.BooleanField(default=False)
     updated = models.DateTimeField(auto_now=datetime.datetime.now)
+
+class Verification(models.Model):
+    property_name = models.TextField(default='')
+    verification_result = models.BooleanField(default=True)
+    verified = models.DateTimeField(auto_now=datetime.datetime.now)
