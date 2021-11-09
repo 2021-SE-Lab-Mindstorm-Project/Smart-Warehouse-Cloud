@@ -13,13 +13,15 @@ item_type_choices = [
     (BLUE, 'Blue')
 ]
 
-LEFT = 1
-MIDDLE = 2
-RIGHT = 3
+LEFT = 0
+MIDDLE = 1
+RIGHT = 2
+SHIPMENT = 3
 dest_choices = [
     (LEFT, 'Left'),
     (MIDDLE, 'Middle'),
-    (RIGHT, 'Right')
+    (RIGHT, 'Right'),
+    (SHIPMENT, 'Shipment')
 ]
 
 
@@ -89,6 +91,7 @@ class Message(models.Model):
 class Status(models.Model):
     status = models.BooleanField(default=False)
     updated = models.DateTimeField(auto_now=datetime.datetime.now)
+
 
 class Verification(models.Model):
     property_name = models.TextField(default='')

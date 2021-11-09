@@ -4,3 +4,4 @@ drf-yasg~=1.20.0
 django-cors-headers~=3.10.0
 django-sslserver~=0.22
 requests>=2.26.0
+torch~=1.10.0

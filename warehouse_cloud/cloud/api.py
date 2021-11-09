@@ -8,7 +8,7 @@ from rest_framework import serializers, viewsets
 from rest_framework.response import Response
 
 from warehouse_cloud.settings import settings
-from . import models
+from . import models, rl
 from .models import Sensory, Inventory, Order, Message, Status
 
 
@@ -103,21 +103,34 @@ class OrderViewSet(viewsets.ModelViewSet):
         return Response(serializer.data, status=201)
 
 
-def initialize_inventory():
-    Inventory.objects.all().delete()
-    red_inventory = Inventory(item_type=1, value=0)
-    white_inventory = Inventory(item_type=2, value=0)
-    yellow_inventory = Inventory(item_type=3, value=0)
+def state():
+    state = []
+    for i in range(3):
+        items = Inventory.objects.filter(stored=i).order_by('updated')[:int(settings['maximum_capacity_repository'])]
+        ans = 0
+        for j, item in enumerate(items):
+            ans += item.item_type * (5 ** (int(settings['maximum_capacity_repository']) - j - 1))
+        state.append(state)
 
-    red_inventory.save()
-    white_inventory.save()
-    yellow_inventory.save()
+    for i in range(4):
+        orders = Order.objects.filter(item_type=i)
+        state.append(len(orders))
+
+    return state
 
 
 class MessageViewSet(viewsets.ModelViewSet):
     queryset = Message.objects.all()
     serializer_class = MessageSerializer
     http_method_names = ['post']
+
+    ac_model = rl.DQN(10, path='../model/a_rl_c.pth')
+    ar_model = rl.DQN(9, path='../model/a_rl_r.pth')
+    c_model = rl.DQN(9, path='../model/rl_c.pth')
+    r_model = rl.DQN(8, path='../model/rl_r.pth')
+
+    anomaly = [False, False, False]
+    recent = [None, None, None]
 
     @swagger_auto_schema(responses={400: "Bad request", 204: "Invalid Message Title / Invalid Message Sender"})
     def create(self, request, *args, **kwargs):
@@ -134,7 +147,7 @@ class MessageViewSet(viewsets.ModelViewSet):
 
                 if title == 'Start':
                     current_state.status = True
-                    initialize_inventory()
+                    Inventory.objects.all().delete()
                     Order.objects.all().delete()
                 elif title == 'Stop':
                     current_state.status = False
@@ -164,23 +177,58 @@ class MessageViewSet(viewsets.ModelViewSet):
 
                 return Response(status=201)
 
+            elif title == 'Calculation Request':
+                if int(settings['anomaly_aware']) == 1:
+                    selected_tactic = self.ac_model.select_tactic(state())
+                else:
+                    selected_tactic = self.c_model.select_tactic(state())
+                return Response(str(int(selected_tactic)), status=201)
+
             return Response("Invalid Message Title", status=204)
 
         elif sender == models.EDGE_REPOSITORY:
             if title == 'Order Processed':
-                msg = json.loads(request.data['msg'])
-                item_type = int(msg['item_type'])
-                stored = int(msg['stored'])
-                dest = int(msg['dest'])
+                stored = int(request.data['msg'])
 
                 # Modify Inventory DB
-                target_item = Inventory.objects.filter(item_type=item_type, stored=stored)[0]
-                target_item.delete()
+                target_item = Inventory.objects.filter(stored=stored)[0]
+                target_item.stored = models.SHIPMENT
+                target_item.save()
+                self.recent[stored] = target_item
 
                 # Modify Order DB
-                target_order = Order.objects.filter(item_type=item_type, status=2, dest=dest)[0]
-                target_order.status = 3
-                target_order.save()
+                target_orders = Order.objects.filter(item_type=target_item.item_type, status=2)
+                if len(target_orders) != 0:
+                    target_orders[0].status = 3
+                    target_orders[0].save()
+
+                return Response(status=201)
+
+            elif title == 'Calculation Request':
+                if int(settings['anomaly_aware']) == 1:
+                    selected_tactic = self.ar_model.select_tactic(state())
+                else:
+                    selected_tactic = self.r_model.select_tactic(state())
+                return Response(str(int(selected_tactic)), status=201)
+
+            elif title == 'Anomaly Occurred':
+                location = int(request.data['msg'])
+
+                self.anomaly[location] = True
+                if self.recent[location] is not None:
+                    self.recent[location].stored = 2
+                    self.recent[location].save()
+
+                return Response(status=201)
+
+            elif title == 'Anomaly Solved':
+                location = int(request.data['msg'])
+
+                self.anomaly[location] = False
+                if self.recent[location] is not None:
+                    self.recent[location].stored = 3
+                    self.recent[location].save()
+                    self.recent[location] = None
 
                 return Response(status=201)
 
