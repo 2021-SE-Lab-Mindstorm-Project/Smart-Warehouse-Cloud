@@ -105,7 +105,7 @@ class OrderViewSet(viewsets.ModelViewSet):
 
 def state_r():
     state = []
-    for i in range(3):
+    for i in range(4):
         items = Inventory.objects.filter(stored=i).order_by('updated')[:int(settings['maximum_capacity_repository'])]
         ans = 0
         for j, item in enumerate(items):
@@ -132,7 +132,7 @@ def anomaly_state(anomaly):
 
 def available_c():
     available = []
-    for i in range(4):
+    for i in range(3):
         items = Inventory.objects.filter(stored=i)
         if len(items) >= settings['maximum_capacity_repository']:
             available.append(False)
@@ -143,7 +143,7 @@ def available_c():
 
 def available_r(anomaly):
     available = []
-    for i in range(4):
+    for i in range(3):
         items = Inventory.objects.filter(stored=i)
         if len(items) != 0 and not anomaly[i]:
             available.append(True)
