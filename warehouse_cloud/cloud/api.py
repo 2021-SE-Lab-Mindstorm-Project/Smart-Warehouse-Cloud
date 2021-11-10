@@ -103,20 +103,32 @@ class OrderViewSet(viewsets.ModelViewSet):
         return Response(serializer.data, status=201)
 
 
-def state():
+def state_r():
     state = []
     for i in range(3):
         items = Inventory.objects.filter(stored=i).order_by('updated')[:int(settings['maximum_capacity_repository'])]
         ans = 0
         for j, item in enumerate(items):
             ans += item.item_type * (5 ** (int(settings['maximum_capacity_repository']) - j - 1))
-        state.append(state)
+        state.append(ans)
 
     for i in range(4):
         orders = Order.objects.filter(item_type=i)
         state.append(len(orders))
 
     return state
+
+def state_c(item_type):
+    return [item_type, *state_r()]
+
+
+def anomaly_state(anomaly):
+    ans = 0
+    for i, anomaly in enumerate(anomaly):
+        if anomaly:
+            ans += (2 ** i)
+    return ans
+
 
 def available_c():
     available = []
@@ -200,10 +212,12 @@ class MessageViewSet(viewsets.ModelViewSet):
                 return Response(status=201)
 
             elif title == 'Calculation Request':
+                item_type = int(request.data['msg'])
                 if int(settings['anomaly_aware']) == 1:
-                    selected_tactic = self.ac_model.select_tactic(state(), available_c())
+                    selected_tactic = self.ac_model.select_tactic([*state_c(item_type), anomaly_state(self.anomaly)],
+                                                                  available_c())
                 else:
-                    selected_tactic = self.c_model.select_tactic(state(), available_c())
+                    selected_tactic = self.c_model.select_tactic(state_c(item_type), available_c())
                 return Response(str(int(selected_tactic)), status=201)
 
             return Response("Invalid Message Title", status=204)
@@ -228,9 +242,9 @@ class MessageViewSet(viewsets.ModelViewSet):
 
             elif title == 'Calculation Request':
                 if int(settings['anomaly_aware']) == 1:
-                    selected_tactic = self.ar_model.select_tactic(state(), available_r(self.anomaly))
+                    selected_tactic = self.ar_model.select_tactic([*state_r(), *anomaly_state(self.anomaly)], available_r(self.anomaly))
                 else:
-                    selected_tactic = self.r_model.select_tactic(state(), available_r(self.anomaly))
+                    selected_tactic = self.r_model.select_tactic(state_r(), available_r(self.anomaly))
                 return Response(str(int(selected_tactic)), status=201)
 
             elif title == 'Anomaly Occurred':
