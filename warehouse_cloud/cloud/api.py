@@ -218,7 +218,7 @@ class MessageViewSet(viewsets.ModelViewSet):
                                                                   available_c())
                 else:
                     selected_tactic = self.c_model.select_tactic(state_c(item_type), available_c())
-                return Response(str(int(selected_tactic)), status=201)
+                return Response(int(selected_tactic), status=201)
 
             return Response("Invalid Message Title", status=204)
 
@@ -242,10 +242,10 @@ class MessageViewSet(viewsets.ModelViewSet):
 
             elif title == 'Calculation Request':
                 if int(settings['anomaly_aware']) == 1:
-                    selected_tactic = self.ar_model.select_tactic([*state_r(), *anomaly_state(self.anomaly)], available_r(self.anomaly))
+                    selected_tactic = self.ar_model.select_tactic([*state_r(), anomaly_state(self.anomaly)], available_r(self.anomaly))
                 else:
                     selected_tactic = self.r_model.select_tactic(state_r(), available_r(self.anomaly))
-                return Response(str(int(selected_tactic)), status=201)
+                return Response(int(selected_tactic), status=201)
 
             elif title == 'Anomaly Occurred':
                 location = int(request.data['msg'])
