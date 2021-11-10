@@ -118,6 +118,28 @@ def state():
 
     return state
 
+def available_c():
+    available = []
+    for i in range(3):
+        items = Inventory.objects.filter(stored=i)
+        if len(items) >= settings['maximum_capacity_repository']:
+            available.append(False)
+        else:
+            available.append(True)
+
+    return available
+
+def available_r(anomaly):
+    available = []
+    for i in range(3):
+        items = Inventory.objects.filter(stored=i)
+        if len(items) != 0 and not anomaly[i]:
+            available.append(True)
+        else:
+            available.append(False)
+
+    return available
+
 
 class MessageViewSet(viewsets.ModelViewSet):
     queryset = Message.objects.all()
@@ -179,9 +201,9 @@ class MessageViewSet(viewsets.ModelViewSet):
 
             elif title == 'Calculation Request':
                 if int(settings['anomaly_aware']) == 1:
-                    selected_tactic = self.ac_model.select_tactic(state())
+                    selected_tactic = self.ac_model.select_tactic(state(), available_c())
                 else:
-                    selected_tactic = self.c_model.select_tactic(state())
+                    selected_tactic = self.c_model.select_tactic(state(), available_c())
                 return Response(str(int(selected_tactic)), status=201)
 
             return Response("Invalid Message Title", status=204)
@@ -206,9 +228,9 @@ class MessageViewSet(viewsets.ModelViewSet):
 
             elif title == 'Calculation Request':
                 if int(settings['anomaly_aware']) == 1:
-                    selected_tactic = self.ar_model.select_tactic(state())
+                    selected_tactic = self.ar_model.select_tactic(state(), available_r(self.anomaly))
                 else:
-                    selected_tactic = self.r_model.select_tactic(state())
+                    selected_tactic = self.r_model.select_tactic(state(), available_r(self.anomaly))
                 return Response(str(int(selected_tactic)), status=201)
 
             elif title == 'Anomaly Occurred':

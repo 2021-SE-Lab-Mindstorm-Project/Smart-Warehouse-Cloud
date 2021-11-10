@@ -43,9 +43,12 @@ class DQN(nn.Module):
             self.load_state_dict(torch.load(path, map_location=torch.device("cpu")))
             self.eval()
 
-    def select_tactic(self, state):
+    def select_tactic(self, state, available):
         state_tensor = torch.FloatTensor([state]).to(torch.device("cpu"))
-        return self.model(state_tensor).max(1)[1].view(1, 1)
+        result = self.model(state_tensor).sort()
+        for i in range(4):
+            if int(result.indices[0][i]) == 3 or available[int(result.indices[0][i])]:
+                return result.indices[0][i]
 
     def optimize_model(self):
         if len(self.memory) < batch_size:
