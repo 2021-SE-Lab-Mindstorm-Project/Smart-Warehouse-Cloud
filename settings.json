@@ -1,8 +1,7 @@
 {
   "address": "169.56.76.12",
   "timezone": "Asia/Seoul",
-  "anomaly_aware": 1,
-  "maximum_capacity_repository": 10,
+  "maximum_capacity_repository": 5,
   "edge_classification_address": "http://143.248.41.212",
   "edge_repository_address": "http://143.248.41.213",
   "edge_shipment_address": "http://143.248.41.214"

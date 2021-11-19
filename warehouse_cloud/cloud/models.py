@@ -17,11 +17,13 @@ LEFT = 0
 MIDDLE = 1
 RIGHT = 2
 SHIPMENT = 3
+STUCK = 4
 dest_choices = [
     (LEFT, 'Left'),
     (MIDDLE, 'Middle'),
     (RIGHT, 'Right'),
-    (SHIPMENT, 'Shipment')
+    (SHIPMENT, 'Shipment'),
+    (STUCK, 'Stuck')
 ]
 
 
@@ -90,6 +92,8 @@ class Message(models.Model):
 
 class Status(models.Model):
     status = models.BooleanField(default=False)
+    experiment_type = models.TextField(default='')
+    dm_type = models.TextField(default='')
     updated = models.DateTimeField(auto_now=datetime.datetime.now)
 
 

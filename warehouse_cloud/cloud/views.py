@@ -6,3 +6,8 @@ def index(request):
     template = loader.get_template('cloud/index.html')
 
     return HttpResponse(template.render())
+
+def experiment(request):
+    template = loader.get_template('cloud/experiment.html')
+
+    return HttpResponse(template.render())
