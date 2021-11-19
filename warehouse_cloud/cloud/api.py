@@ -283,7 +283,7 @@ class MessageViewSet(viewsets.ModelViewSet):
                 item_type = int(order_data['item_type'])
                 dest = order_data['dest']
 
-                if dest == 4:
+                if dest == 3:
                     self.reward -= 100
                 else:
                     # Modify Order DB
