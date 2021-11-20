@@ -17,6 +17,9 @@ experiment_type = 'SAS'
 dm_type = 'ORL'
 
 # Self-adaptive System Experiment Methods & Variables
+c_allow = False
+r_allow = [False] * 3
+s_allow = False
 current_anomaly = [False] * 3
 recent_order = [None] * 3
 recent_item = [None] * 3
@@ -127,7 +130,7 @@ class MessageViewSet(viewsets.ModelViewSet):
 
     @swagger_auto_schema(responses={400: "Bad request", 204: "Invalid Message Title / Invalid Message Sender"})
     def create(self, request, *args, **kwargs):
-        global experiment_type, dm_type, anomaly_aware, current_anomaly, recent_order, recent_item, reward, rl_model, ordered, old_state, old_decision, old_reward
+        global experiment_type, dm_type, anomaly_aware, current_anomaly, recent_order, recent_item, reward, rl_model, ordered, old_state, old_decision, old_reward, c_allow, r_allow, s_allow
         super().create(request, *args, **kwargs)
         sender = int(request.data['sender'])
         title = request.data['title']
@@ -175,7 +178,9 @@ class MessageViewSet(viewsets.ModelViewSet):
 
                 return Response(status=201)
 
-            elif title == 'Reward Calculation':
+            elif title == 'Process':
+
+
                 reward -= get_order(True)
 
                 if dm_type == 'ORL' and old_state is not None:
@@ -210,6 +215,9 @@ class MessageViewSet(viewsets.ModelViewSet):
                     if not available(selected_tactic):
                         return Response(status=204)
 
+                elif not c_allow:
+                    return Response(status=204)
+
                 elif need_decision():
                     if dm_type == 'Random':
                         selected_tactic = random.choice(get_available())
@@ -225,6 +233,7 @@ class MessageViewSet(viewsets.ModelViewSet):
                 else:
                     return Response(status=204)
 
+                c_allow = False
                 return Response(int(selected_tactic), status=201)
 
             print(title)
@@ -247,6 +256,14 @@ class MessageViewSet(viewsets.ModelViewSet):
                     target_orders[0].save()
                 recent_order[stored] = target_orders[0]
 
+                return Response(status=201)
+
+            elif title == 'SAS Check':
+                location = int(request.data['msg'])
+                if not r_allow[location]:
+                    return Response(status=204)
+
+                r_allow[location] = False
                 return Response(status=201)
 
             elif title == 'Anomaly Occurred':
@@ -294,6 +311,13 @@ class MessageViewSet(viewsets.ModelViewSet):
                         target_order.save()
                         reward += 100
 
+                return Response(status=201)
+
+            elif title == 'SAS Check':
+                if not s_allow:
+                    return Response(status=204)
+
+                s_allow = False
                 return Response(status=201)
 
             return Response("Invalid Message Title", status=204)
