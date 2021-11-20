@@ -168,8 +168,20 @@ class MessageViewSet(viewsets.ModelViewSet):
                 if num_orders == 0 and target.tick > target.total_orders:
                     result = {
                         'tick': target.tick,
-                        'reward': target.reward
+                        'reward': target.reward,
+                        'alert': "ended"
                     }
+                    current_state = Status.objects.all()[0]
+                    current_state.status = False
+                    current_state.save()
+
+                    start_message = {'sender': models.CLOUD,
+                                     'title': "Stop",
+                                     'msg': experiment_type}
+                    requests.post(settings['edge_classification_address'] + '/api/message/', data=start_message)
+                    requests.post(settings['edge_repository_address'] + '/api/message/', data=start_message)
+                    requests.post(settings['edge_shipment_address'] + '/api/message/', data=start_message)
+
                     return Response(result, status=201)
 
                 target.reward -= num_orders * target.reward_wait
