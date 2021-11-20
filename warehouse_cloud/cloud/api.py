@@ -161,7 +161,7 @@ class MessageViewSet(viewsets.ModelViewSet):
                 msg = json.loads(request.data['msg'])
                 new_order = int(msg['order'])
                 anomaly_0 = False if int(msg['anomaly_0']) == 0 else True
-                anomaly_2 = False if int(msg['anomaly_0']) == 0 else True
+                anomaly_2 = False if int(msg['anomaly_2']) == 0 else True
                 anomaly = [anomaly_0, False, anomaly_2]
 
                 num_orders = len(Order.objects.all()) - len(Order.objects.filter(status=4))
