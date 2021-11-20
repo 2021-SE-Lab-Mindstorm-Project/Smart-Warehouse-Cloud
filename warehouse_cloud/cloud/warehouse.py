@@ -1,4 +1,4 @@
-import rl
+from . import rl
 from .models import Inventory, Order
 
 

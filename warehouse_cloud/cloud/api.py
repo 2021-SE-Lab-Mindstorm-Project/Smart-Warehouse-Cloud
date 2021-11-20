@@ -8,9 +8,8 @@ from drf_yasg.utils import swagger_auto_schema
 from rest_framework import serializers, viewsets
 from rest_framework.response import Response
 
-import warehouse
 from warehouse_cloud.settings import settings
-from . import models
+from . import models, warehouse
 from .models import Sensory, Inventory, Order, Message, Status
 
 # Experiment Variables
