@@ -296,6 +296,8 @@ class MessageViewSet(viewsets.ModelViewSet):
                 return Response(status=201)
 
             elif title == 'SAS Check':
+                target.recent_c = int(request.data['msg'])
+
                 if target.c_allow == 3:
                     return Response(status=204)
 

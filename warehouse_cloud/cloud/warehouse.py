@@ -18,6 +18,7 @@ class Warehouse:
         self.rl_model = rl.DQN(anomaly_aware, path='../model/a_rl.pth' if self.anomaly_aware else '../model/rl.pth')
 
         self.c = [0] * 4
+        self.recent_c = 0
 
         self.c_waiting = 0
         self.c_allow = 3
@@ -92,7 +93,7 @@ class Warehouse:
                 ans += item.item_type * (5 ** (5 - i - 1))
             return ans
 
-        ans = [self.tick]
+        ans = [self.tick, self.recent_c]
         for i in range(4):
             ans.append(repr_list(Inventory.objects.filter(stored=i)))
         ans.extend(self.get_order(False))
