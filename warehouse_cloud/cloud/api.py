@@ -292,7 +292,7 @@ class MessageViewSet(viewsets.ModelViewSet):
 
                 return Response(status=201)
 
-            elif title == 'SAS check':
+            elif title == 'SAS Check':
                 if target.c_allow == 3:
                     return Response(status=204)
 
