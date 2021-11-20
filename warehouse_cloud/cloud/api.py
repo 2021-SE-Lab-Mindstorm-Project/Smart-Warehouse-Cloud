@@ -266,6 +266,9 @@ class MessageViewSet(viewsets.ModelViewSet):
                     'tick': target.tick,
                     'reward': target.reward,
                     'request': request,
+                    'c_decision': c_decision,
+                    'r_decision': r_decision,
+                    's_decision': s_decision,
                     'tried_0': 1 if r_decision[0] else 0,
                     'tried_2': 1 if r_decision[2] else 0
                 }
@@ -300,7 +303,6 @@ class MessageViewSet(viewsets.ModelViewSet):
                 target.c_allow = 3
                 return Response(int(selected_tactic), status=201)
 
-            print(title)
             return Response("Invalid Message Title", status=204)
 
         elif sender == models.EDGE_REPOSITORY:
