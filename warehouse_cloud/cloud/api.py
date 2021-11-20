@@ -8,29 +8,15 @@ from drf_yasg.utils import swagger_auto_schema
 from rest_framework import serializers, viewsets
 from rest_framework.response import Response
 
+import warehouse
 from warehouse_cloud.settings import settings
-from . import models, rl
+from . import models
 from .models import Sensory, Inventory, Order, Message, Status
 
 # Experiment Variables
 experiment_type = 'SAS'
 dm_type = 'ORL'
-
-# Self-adaptive System Experiment Methods & Variables
-c_allow = False
-r_allow = [False] * 3
-s_allow = False
-current_anomaly = [False] * 3
-recent_order = [None] * 3
-recent_item = [None] * 3
-reward = 0
-anomaly_aware = True
-rl_model = rl.DQN(anomaly_aware, path='../model/a_rl.pth')
-ordered = [0] * 4
-old_state = None
-old_decision = None
-old_reward = 0
-
+target = warehouse.Warehouse(True)
 
 # Serializer
 class SensoryListSerializer(serializers.ListSerializer):
@@ -130,7 +116,7 @@ class MessageViewSet(viewsets.ModelViewSet):
 
     @swagger_auto_schema(responses={400: "Bad request", 204: "Invalid Message Title / Invalid Message Sender"})
     def create(self, request, *args, **kwargs):
-        global experiment_type, dm_type, anomaly_aware, current_anomaly, recent_order, recent_item, reward, rl_model, ordered, old_state, old_decision, old_reward, c_allow, r_allow, s_allow
+        global experiment_type, dm_type, target
         super().create(request, *args, **kwargs)
         sender = int(request.data['sender'])
         title = request.data['title']
@@ -145,24 +131,17 @@ class MessageViewSet(viewsets.ModelViewSet):
 
                 if title == 'Start':
                     experiment_type = msg['experiment_type']
-                    dm_type = msg['dm_type']
 
                     current_state.status = True
-                    current_state.experiment_type = experiment_type
-                    current_state.dm_type = dm_type
                     Inventory.objects.all().delete()
                     Order.objects.all().delete()
 
                     if experiment_type == 'SAS':
-                        current_anomaly = [False] * 3
-                        recent_order = [None] * 3
-                        recent_item = [None] * 3
-                        reward = 0
-                        rl_model = rl.DQN(anomaly_aware, path='../model/a_rl.pth')
-                        ordered = [0] * 4
-                        old_state = None
-                        old_decision = None
-                        old_reward = 0
+                        dm_type = msg['dm_type']
+                        if dm_type == 'AD-RL':
+                            target = warehouse.Warehouse(True)
+                        else:
+                            target = warehouse.Warehouse(False)
 
                 elif title == 'Stop':
                     current_state.status = False
@@ -179,15 +158,110 @@ class MessageViewSet(viewsets.ModelViewSet):
                 return Response(status=201)
 
             elif title == 'Process':
+                msg = json.loads(request.data['msg'])
+                new_order = int(msg['order'])
+                anomaly_0 = False if int(msg['anomaly_0']) == 0 else True
+                anomaly_2 = False if int(msg['anomaly_0']) == 0 else True
+                anomaly = [anomaly_0, False, anomaly_2]
 
+                num_orders = len(Order.objects.all()) - len(Order.objects.filter(status=4))
+                if num_orders == 0 and target.tick > target.total_orders:
+                    result = {
+                        'tick': target.tick,
+                        'reward': target.reward
+                    }
+                    return Response(result, status=201)
 
-                reward -= get_order(True)
+                target.reward -= num_orders * target.reward_wait
+                target.tick += 1
 
-                if dm_type == 'ORL' and old_state is not None:
-                    rl_model.push_optimize(old_state, old_decision, reward - old_reward, [0, *get_state()])
-                    old_state = None
+                if dm_type == 'ORL' and target.old_state is not None:
+                    target.rl_model.push_optimize(target.old_state, target.old_decision,
+                                                  target.reward - target.old_reward, target.get_state())
+                    target.old_state = None
+                    target.old_reward = target.reward
 
-                return Response(reward, status=201)
+                c_decision = 3
+                # Decision making
+                if dm_type == 'Random':
+                    candidate = target.get_available()
+                    if len(candidate) != 0:
+                        c_decision = random.choice(candidate)
+
+                elif target.need_decision():
+                    target.old_state = target.get_state()
+                    target.old_decision = target.rl_model.select_tactic(target.get_state(), target.available())
+                    c_decision = int(target.old_decision)
+
+                else:
+                    avail = target.get_available()
+                    if len(avail) != 0:
+                        c_decision = avail[0]
+
+                # R to S
+                r_decision = [False] * 3
+                s_items = Inventory.objects.filter(stored=3)
+                shipment_cap = 5 - len(s_items)
+                for i in [1, 0, 2]:
+                    inventory_list = Inventory.objects.filter(stored=i)
+                    if target.current_anomaly[i] != -1 and len(
+                            inventory_list) != 0 and shipment_cap < target.cap_conveyor:
+                        target_item = inventory_list[0]
+                        orders = Order.objects.filter(item_type=target_item.item_type, status=2).order_by('made')
+                        if len(orders) != 0 or target.r_wait[i] > target.cap_wait:
+                            r_decision[i] = True
+                            target.count[i] += 1
+                            target.r_wait[i] = 0
+                            shipment_cap -= 1
+                        else:
+                            target.r_wait[i] += 1
+
+                # Make anomaly
+                for i in [0, 2]:
+                    if target.current_anomaly[i] == -1 and anomaly[i] and r_decision[i]:
+                        target.current_anomaly[i] = target.tick
+                        r_decision[i] = False
+
+                # Solve anomaly
+                for i in [0, 2]:
+                    if target.current_anomaly[i] != -1 and target.current_anomaly[
+                        i] + target.anomaly_duration < target.tick:
+                        target.current_anomaly[i] = -1
+                        r_decision[i] = True
+
+                # S to End
+                s_decision = False
+                if len(s_items) != 0:
+                    target_item = s_items[0]
+                    orders = Order.objects.filter(item_type=target_item.item_type, status=3).order_by('made')
+                    if len(orders) != 0 or target.s_wait > target.cap_wait:
+                        s_decision = True
+                        target.s_wait = 0
+                    else:
+                        target.s_wait += 1
+
+                # Request Item
+                request = ''
+                for i in range(1, 5):
+                    if target.get_inventory(i) < len(Order.objects.filter(item_type=i)):
+                        target.c[i - 1] += 5
+                        request += str(i) + ' &'
+
+                # Add order
+                order_row = Order(item_type=new_order, dest=random.randrange(3))
+                order_row.save()
+
+                target.c_allow = c_decision
+                target.r_allow = r_decision
+                target.s_allow = s_decision
+
+                result = {
+                    'tick': target.tick,
+                    'reward': target.reward,
+                    'request': request
+                }
+
+                return Response(result, status=201)
 
             return Response("Invalid Message Title", status=204)
 
@@ -200,40 +274,17 @@ class MessageViewSet(viewsets.ModelViewSet):
                 # Modify Inventory DB
                 target_item = Inventory(item_type=item_type, stored=stored)
                 target_item.save()
-                if ordered[item_type - 1] != 0:
-                    ordered[item_type - 1] -= 1
+                if target.c[item_type - 1] != 0:
+                    target.c[item_type - 1] -= 1
 
                 return Response(status=201)
 
-            elif title == 'Calculation Request':
-                if experiment_type != 'SAS':
-                    item_type = int(request.data['msg'])
-                    selected_tactic = item_type - 1
-                    if item_type == 4:
-                        selected_tactic = 2
-
-                    if not available(selected_tactic):
-                        return Response(status=204)
-
-                elif not c_allow:
+            elif title == 'SAS check':
+                if target.c_allow == 3:
                     return Response(status=204)
 
-                elif need_decision():
-                    if dm_type == 'Random':
-                        selected_tactic = random.choice(get_available())
-                    else:
-                        item_type = int(request.data['msg'])
-                        selected_tactic = rl_model.select_tactic([item_type, *get_state()], available())
-                        old_state = [item_type, *get_state()]
-                        old_decision = selected_tactic
-
-                elif len(get_available()) == 1:
-                    selected_tactic = get_available()[0]
-
-                else:
-                    return Response(status=204)
-
-                c_allow = False
+                selected_tactic = target.c_allow
+                target.c_allow = 3
                 return Response(int(selected_tactic), status=201)
 
             print(title)
@@ -247,49 +298,29 @@ class MessageViewSet(viewsets.ModelViewSet):
                 target_item = Inventory.objects.filter(stored=stored)[0]
                 target_item.stored = models.SHIPMENT
                 target_item.save()
-                recent_item[stored] = target_item
 
                 # Modify Order DB
                 target_orders = Order.objects.filter(item_type=target_item.item_type, status=2)
                 if len(target_orders) != 0:
                     target_orders[0].status = 3
                     target_orders[0].save()
-                recent_order[stored] = target_orders[0]
 
                 return Response(status=201)
 
             elif title == 'SAS Check':
                 location = int(request.data['msg'])
-                if not r_allow[location]:
+                if not target.r_allow[location]:
                     return Response(status=204)
 
-                r_allow[location] = False
+                target.r_allow[location] = False
                 return Response(status=201)
 
             elif title == 'Anomaly Occurred':
                 location = int(request.data['msg'])
-
-                current_anomaly[location] = True
-                recent_item[location].stored = models.STUCK
-                recent_item[location].stored.save()
-                recent_order[location].status = 2
-                recent_order[location].save()
-                recent_order[location] = None
-
                 return Response(status=201)
 
             elif title == 'Anomaly Solved':
                 location = int(request.data['msg'])
-
-                current_anomaly[location] = False
-                recent_item[location].stored = models.SHIPMENT
-                recent_item[location].stored.save()
-
-                orders = Order.objects.filter(status=2, item_type=recent_item[location].item_type)
-                if len(orders) != 0:
-                    orders[0].status = 3
-                    orders[0].save()
-
                 return Response(status=201)
 
             return Response("Invalid Message Title", status=204)
@@ -301,7 +332,7 @@ class MessageViewSet(viewsets.ModelViewSet):
                 dest = order_data['dest']
 
                 if dest == 3:
-                    reward -= 100
+                    target.reward -= target.reward_trash
                 else:
                     # Modify Order DB
                     orders = Order.objects.filter(item_type=item_type, dest=dest, status=3)
@@ -309,89 +340,18 @@ class MessageViewSet(viewsets.ModelViewSet):
                         target_order = orders[0]
                         target_order.status = 4
                         target_order.save()
-                        reward += 100
+                        target.reward += target.reward_order
 
                 return Response(status=201)
 
             elif title == 'SAS Check':
-                if not s_allow:
+                if not target.s_allow:
                     return Response(status=204)
 
-                s_allow = False
+                target.s_allow = False
                 return Response(status=201)
 
             return Response("Invalid Message Title", status=204)
 
         return Response("Invalid Message Sender", status=204)
 
-
-# Self-adaptive System Experiment Methods & Variables
-def available(i=None):
-    global anomaly_aware, current_anomaly
-    if i is not None:
-        inventory_objects = Inventory.objects.filter(stored=i)
-        ans = len(inventory_objects) < settings['maximum_capacity_repository']
-        if not anomaly_aware:
-            return ans
-        return ans and not current_anomaly[i]
-
-    ans = []
-    for i in range(3):
-        inventory_objects = Inventory.objects.filter(stored=i)
-        single_ans = len(inventory_objects) < settings['maximum_capacity_repository']
-        if not anomaly_aware:
-            ans.append(single_ans)
-        else:
-            ans.append(single_ans and not current_anomaly[i])
-    return ans
-
-def need_decision():
-    num_true = 0
-    for ans in available():
-        if ans:
-            num_true += 1
-
-    return num_true > 1
-
-def get_available():
-    avails = available()
-    ans = []
-    for i, avail in enumerate(avails):
-        if avail:
-            ans.append(i)
-    return ans
-
-def get_inventory(self, item):
-    return self.ordered[item - 1] + len(Inventory.objects.filter(item_type=item))
-
-def get_order(is_sum=True):
-    if is_sum:
-        return len(Order.objects.all())
-
-    orders = []
-    for i in range(4):
-        orders.append(len(Order.objects.filter(item_type=i + 1)))
-
-    return orders
-
-def get_state():
-    global anomaly_aware, current_anomaly
-    def repr_list(conveyor):
-        ans = 0
-        for i, item in enumerate(conveyor):
-            ans += item.item_type * (5 ** (settings['maximum_capacity_repository'] - i - 1))
-        return ans
-
-    ans = []
-    for i in range(4):
-        ans.append(repr_list(Inventory.objects.filter(stored=i)))
-    ans.extend(get_order(False))
-
-    if anomaly_aware:
-        anomaly_number = 0
-        for i, anomaly in enumerate(current_anomaly):
-            if anomaly:
-                anomaly_number += (2 ** i)
-        ans.append(anomaly_number)
-
-    return ans
