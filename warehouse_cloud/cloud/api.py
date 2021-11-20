@@ -204,7 +204,7 @@ class MessageViewSet(viewsets.ModelViewSet):
                     target.old_decision = target.rl_model.select_tactic(target.get_state(), target.available())
                     c_decision = int(target.old_decision)
 
-                else:
+                elif target.recent_c != 0:
                     avail = target.get_available()
                     if len(avail) != 0:
                         c_decision = avail[0]
@@ -303,6 +303,7 @@ class MessageViewSet(viewsets.ModelViewSet):
 
                 selected_tactic = target.c_allow
                 target.c_allow = 3
+                target.recent_c = 0
                 return Response(int(selected_tactic), status=201)
 
             return Response("Invalid Message Title", status=204)
