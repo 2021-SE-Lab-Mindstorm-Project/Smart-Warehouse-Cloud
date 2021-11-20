@@ -263,15 +263,17 @@ class MessageViewSet(viewsets.ModelViewSet):
                 order_row = Order(item_type=new_order, dest=random.randrange(3))
                 order_row.save()
 
-                target.c_allow = c_decision
-                target.r_allow = r_decision
-                target.s_allow = s_decision
-
                 result = {
                     'tick': target.tick,
                     'reward': target.reward,
-                    'request': request
+                    'request': request,
+                    'tried_0': 1 if r_decision[0] else 0,
+                    'tried_2': 1 if r_decision[2] else 0
                 }
+
+                target.c_allow = c_decision
+                target.r_allow = r_decision
+                target.s_allow = s_decision
 
                 return Response(result, status=201)
 
