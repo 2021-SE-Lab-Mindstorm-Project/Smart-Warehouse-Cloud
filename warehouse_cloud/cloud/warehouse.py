@@ -36,7 +36,7 @@ class Warehouse:
         self.old_reward = 0
 
     def need_decision(self):
-        if len(self.c) == 0:
+        if sum(self.c) == 0:
             return False
 
         num_true = 0
@@ -52,7 +52,7 @@ class Warehouse:
             ans = len(inventory_objects) < self.cap_conveyor
             if not self.anomaly_aware:
                 return ans
-            return ans and self.current_anomaly[i] != -1
+            return ans and self.current_anomaly[i] == -1
 
         ans = []
         for i in range(3):
@@ -61,7 +61,7 @@ class Warehouse:
             if not self.anomaly_aware:
                 ans.append(single_ans)
             else:
-                ans.append(single_ans and self.current_anomaly[i] != -1)
+                ans.append(single_ans and self.current_anomaly[i] == -1)
         return ans
 
     def get_available(self):
