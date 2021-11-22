@@ -158,7 +158,6 @@ class MessageViewSet(viewsets.ModelViewSet):
 
             elif title == 'Process':
                 msg = json.loads(request.data['msg'])
-                new_order = int(msg['order'])
                 anomaly_0 = False if int(msg['anomaly_0']) == 0 else True
                 anomaly_2 = False if int(msg['anomaly_2']) == 0 else True
                 anomaly = [anomaly_0, False, anomaly_2]
@@ -257,10 +256,6 @@ class MessageViewSet(viewsets.ModelViewSet):
                     if target.get_inventory(i) < len(Order.objects.filter(item_type=i)):
                         target.c[i - 1] += 5
                         request += str(i) + ' &'
-
-                # Add order
-                order_row = Order(item_type=new_order, dest=random.randrange(3))
-                order_row.save()
 
                 result = {
                     'tick': target.tick,
