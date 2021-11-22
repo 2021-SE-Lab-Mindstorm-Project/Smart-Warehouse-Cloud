@@ -23,7 +23,7 @@ class Warehouse:
         self.c_waiting = 0
         self.c_allow = 3
         self.r_allow = [False] * 3
-        self.s_allow = False
+        self.s_allow = 3
 
         self.r_wait = [0] * 3
         self.s_wait = 0

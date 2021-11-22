@@ -240,12 +240,14 @@ class MessageViewSet(viewsets.ModelViewSet):
                         r_decision[i] = True
 
                 # S to End
-                s_decision = False
+                s_decision = 3
                 if len(s_items) != 0:
                     target_item = s_items[0]
                     orders = Order.objects.filter(item_type=target_item.item_type, status=3).order_by('made')
-                    if len(orders) != 0 or target.s_wait > target.cap_wait:
-                        s_decision = True
+                    if len(orders) != 0:
+                        s_decision = orders[0].dest
+                        target.s_wait = 0
+                    elif target.s_wait > target.cap_wait:
                         target.s_wait = 0
                     else:
                         target.s_wait += 1
@@ -363,8 +365,9 @@ class MessageViewSet(viewsets.ModelViewSet):
                 if not target.s_allow:
                     return Response(status=204)
 
-                target.s_allow = False
-                return Response(status=201)
+                selected_tactic = target.s_allow
+                target.s_allow = 3
+                return Response(int(selected_tactic), status=201)
 
             return Response("Invalid Message Title", status=204)
 
