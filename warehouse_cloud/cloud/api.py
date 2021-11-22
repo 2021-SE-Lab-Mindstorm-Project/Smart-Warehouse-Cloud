@@ -215,7 +215,7 @@ class MessageViewSet(viewsets.ModelViewSet):
                 shipment_cap = 5 - len(s_items)
                 for i in [1, 0, 2]:
                     inventory_list = Inventory.objects.filter(stored=i)
-                    if target.current_anomaly[i] != -1 and len(
+                    if target.current_anomaly[i] == -1 and len(
                             inventory_list) != 0 and shipment_cap > 0:
                         target_item = inventory_list[0]
                         orders = Order.objects.filter(item_type=target_item.item_type, status=2).order_by('made')
