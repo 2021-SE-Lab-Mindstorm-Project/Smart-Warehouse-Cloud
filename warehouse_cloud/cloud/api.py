@@ -248,6 +248,7 @@ class MessageViewSet(viewsets.ModelViewSet):
                         s_decision = orders[0].dest
                         target.s_wait = 0
                     elif target.s_wait > target.cap_wait:
+                        s_decision = -1
                         target.s_wait = 0
                     else:
                         target.s_wait += 1
@@ -362,7 +363,7 @@ class MessageViewSet(viewsets.ModelViewSet):
                 return Response(status=201)
 
             elif title == 'SAS Check':
-                if not target.s_allow:
+                if target.s_allow == 3:
                     return Response(status=204)
 
                 selected_tactic = target.s_allow
