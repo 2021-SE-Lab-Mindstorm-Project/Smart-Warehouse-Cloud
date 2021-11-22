@@ -216,7 +216,7 @@ class MessageViewSet(viewsets.ModelViewSet):
                 for i in [1, 0, 2]:
                     inventory_list = Inventory.objects.filter(stored=i)
                     if target.current_anomaly[i] != -1 and len(
-                            inventory_list) != 0 and shipment_cap < target.cap_conveyor:
+                            inventory_list) != 0 and shipment_cap > 0:
                         target_item = inventory_list[0]
                         orders = Order.objects.filter(item_type=target_item.item_type, status=2).order_by('made')
                         if len(orders) != 0 or target.r_wait[i] > target.cap_wait:
@@ -270,7 +270,9 @@ class MessageViewSet(viewsets.ModelViewSet):
                     'r_decision': r_decision,
                     's_decision': s_decision,
                     'tried_0': 1 if r_decision[0] else 0,
-                    'tried_2': 1 if r_decision[2] else 0
+                    'tried_2': 1 if r_decision[2] else 0,
+                    'anomaly_0': 1 if target.current_anomaly[0] != -1 else 0,
+                    'anomaly_2': 1 if target.current_anomaly[2] != -1 else 0
                 }
 
                 target.c_allow = c_decision
