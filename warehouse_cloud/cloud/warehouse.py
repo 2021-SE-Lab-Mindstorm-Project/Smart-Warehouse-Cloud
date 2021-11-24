@@ -8,8 +8,8 @@ class Warehouse:
         self.total_orders = 20
         self.cap_conveyor = 5
         self.cap_wait = 5
-        self.reward_order = 25
-        self.reward_trash = 100
+        self.reward_order = 30
+        self.reward_trash = 70
         self.reward_wait = 1
         self.anomaly_duration = 10
 
