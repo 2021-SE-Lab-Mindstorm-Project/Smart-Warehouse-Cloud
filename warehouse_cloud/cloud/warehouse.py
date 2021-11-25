@@ -19,6 +19,7 @@ class Warehouse:
 
         self.c = [0] * 4
         self.recent_c = 0
+        self.recent_s = 0
 
         self.c_waiting = 0
         self.c_allow = 3

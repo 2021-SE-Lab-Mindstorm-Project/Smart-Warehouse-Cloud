@@ -241,9 +241,8 @@ class MessageViewSet(viewsets.ModelViewSet):
 
                 # S to End
                 s_decision = 3
-                if len(s_items) != 0:
-                    target_item = s_items[0]
-                    orders = Order.objects.filter(item_type=target_item.item_type, status=3).order_by('made')
+                if target.recent_s != 0:
+                    orders = Order.objects.filter(item_type=target.recent_s, status=3).order_by('made')
                     if len(orders) != 0:
                         s_decision = orders[0].dest
                         target.s_wait = 0
@@ -363,6 +362,8 @@ class MessageViewSet(viewsets.ModelViewSet):
                 return Response(status=201)
 
             elif title == 'SAS Check':
+                target.recent_s = int(request.data['msg'])
+
                 if target.s_allow == 3:
                     return Response(status=204)
 
