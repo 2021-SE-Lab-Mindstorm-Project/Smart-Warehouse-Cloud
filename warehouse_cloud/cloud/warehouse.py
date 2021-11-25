@@ -16,9 +16,9 @@ class Warehouse:
         self.tick = 0
         self.anomaly_aware = anomaly_aware
         self.rl_model = rl.DQN(path='../model/rl.pth')
-        self.a_rl_models = [None, rl.DQN(path='model/a_rl_1.pth'),
-                            None, None, rl.DQN(path='model/a_rl_4.pth'),
-                            rl.DQN(path='model/a_rl_5.pth'),
+        self.a_rl_models = [None, rl.DQN(path='../model/a_rl_1.pth'),
+                            None, None, rl.DQN(path='../model/a_rl_4.pth'),
+                            rl.DQN(path='../model/a_rl_5.pth'),
                             None, None]
 
         self.c = [0] * 4
