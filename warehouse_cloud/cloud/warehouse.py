@@ -15,7 +15,11 @@ class Warehouse:
 
         self.tick = 0
         self.anomaly_aware = anomaly_aware
-        self.rl_model = rl.DQN(anomaly_aware, path='../model/a_rl.pth' if self.anomaly_aware else '../model/rl.pth')
+        self.rl_model = rl.DQN(path='../model/a_rl.pth' if self.anomaly_aware else '../model/rl.pth')
+        self.a_rl_models = [None, rl.DQN(path='model/a_rl_1.pth'),
+                            None, None, rl.DQN(path='model/a_rl_4.pth'),
+                            rl.DQN(path='model/a_rl_5.pth'),
+                            None, None]
 
         self.c = [0] * 4
         self.recent_c = 0
@@ -99,11 +103,12 @@ class Warehouse:
             ans.append(repr_list(Inventory.objects.filter(stored=i)))
         ans.extend(self.get_order(False))
 
-        if self.anomaly_aware:
-            anomaly_number = 0
-            for i, anomaly in enumerate(self.current_anomaly):
-                if anomaly != -1:
-                    anomaly_number += (2 ** i)
-            ans.append(anomaly_number)
-
         return ans
+
+    def anomaly_state(self):
+        anomaly_number = 0
+        for i, anomaly in enumerate(self.current_anomaly):
+            if anomaly != -1:
+                anomaly_number += (2 ** i)
+
+        return anomaly_number

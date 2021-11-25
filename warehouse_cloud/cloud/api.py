@@ -137,7 +137,7 @@ class MessageViewSet(viewsets.ModelViewSet):
 
                     if experiment_type == 'SAS':
                         dm_type = msg['dm_type']
-                        if dm_type == 'AD-RL':
+                        if dm_type == 'AAAA':
                             target = warehouse.Warehouse(True)
                         else:
                             target = warehouse.Warehouse(False)
@@ -200,7 +200,10 @@ class MessageViewSet(viewsets.ModelViewSet):
 
                 elif target.need_decision():
                     target.old_state = target.get_state()
-                    target.old_decision = target.rl_model.select_tactic(target.get_state(), target.available())
+                    model = target.rl_model
+                    if dm_type == 'AAAA' and target.anomaly_state() != 0:
+                        model = target.a_rl_models[target.anomaly_state()]
+                    target.old_decision = model.select_tactic(target.get_state(), target.available())
                     c_decision = int(target.old_decision)
 
                 elif target.recent_c != 0:

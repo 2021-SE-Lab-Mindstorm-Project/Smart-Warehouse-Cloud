@@ -23,10 +23,9 @@ class Memory(object):
 
 
 class DQN(nn.Module):
-    def __init__(self, anomaly_aware, path=''):
+    def __init__(self, path=''):
         super(DQN, self).__init__()
-        self.anomaly_aware = anomaly_aware
-        self.input_size = 11 if anomaly_aware else 10
+        self.input_size = 10
         self.output_size = 3
         self.hidden_size = 512
 
@@ -59,7 +58,7 @@ class DQN(nn.Module):
 
     def select_train_tactic(self, state, available):
         sample = random.random()
-        eps_threshold = 0.05 + 0.85 * math.exp(-1. * self.steps / 200)
+        eps_threshold = 0.05 + 0.9 * math.exp(-1. * self.steps / 200)
         self.steps += 1
 
         if sample > eps_threshold:
