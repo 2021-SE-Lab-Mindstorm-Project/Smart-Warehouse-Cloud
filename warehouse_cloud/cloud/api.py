@@ -351,6 +351,10 @@ class MessageViewSet(viewsets.ModelViewSet):
                 if dest == 3:
                     target.reward -= target.reward_trash
                 else:
+                    # Modify Inventory DB
+                    target_item = Inventory.objects.filter(stored=models.SHIPMENT)[0]
+                    target_item.delete()
+
                     # Modify Order DB
                     orders = Order.objects.filter(item_type=item_type, dest=dest, status=3)
                     if len(orders) != 0:
