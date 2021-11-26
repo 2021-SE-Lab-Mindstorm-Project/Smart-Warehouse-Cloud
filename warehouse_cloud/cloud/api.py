@@ -277,8 +277,9 @@ class MessageViewSet(viewsets.ModelViewSet):
 
                 # s
                 s_decision = 3
-                if target.recent_s != 0:
-                    orders = Order.objects.filter(item_type=target.recent_s, status=3).order_by('made')
+                if len(s_items) != 0:
+                    target_item = s_items[0]
+                    orders = Order.objects.filter(item_type=target_item.item_type, status=3).order_by('made')
                     if len(orders) != 0:
                         s_decision = orders[0].dest
                         target.s_wait = 0
@@ -296,6 +297,14 @@ class MessageViewSet(viewsets.ModelViewSet):
                         target.c[i - 1] += target.item_buy
                         request += str(i) + ' &'
 
+                inventories = []
+                for i in range(3):
+                    items = Inventory.objects.filter(stored=i)
+                    ans = ''
+                    for item in items:
+                        ans += str(item.item_type) + ','
+                    inventories.append(ans)
+
                 result = {
                     'tick': target.tick,
                     'reward': target.reward,
@@ -306,7 +315,11 @@ class MessageViewSet(viewsets.ModelViewSet):
                     'anomaly_0': 1 if target.current_anomaly[0] != -1 else 0,
                     'anomaly_2': 1 if target.current_anomaly[2] != -1 else 0,
                     'stuck_0': 1 if target.stuck[0] else 0,
-                    'stuck_2': 1 if target.stuck[2] else 0
+                    'stuck_2': 1 if target.stuck[2] else 0,
+                    'inventory_0': inventories[0],
+                    'inventory_1': inventories[1],
+                    'inventory_2': inventories[2],
+                    'inventory_3': inventories[3]
                 }
 
                 target.c_allow = c_decision
