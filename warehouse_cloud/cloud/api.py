@@ -93,11 +93,18 @@ class OrderViewSet(viewsets.ModelViewSet):
             return Response("System is not running", status=204)
 
         response = super().create(request, *args, **kwargs)
+        order_data = Order.objects.filter(id=response.data['id'])[0]
 
         order_message = {'sender': models.CLOUD,
                          'title': 'Order Created',
                          'msg': json.dumps(response.data)}
-        requests.post(settings['edge_repository_address'] + '/api/message/', data=order_message)
+
+        item_type = response.data['item_type']
+        shipment_ready = Inventory.objects.filter(item_type=item_type, stored=3)
+        order_shipment = Order.objects.filter(item_type=item_type, status=3)
+
+        if len(shipment_ready) <= len(order_shipment):
+            requests.post(settings['edge_repository_address'] + '/api/message/', data=order_message)
         requests.post(settings['edge_shipment_address'] + '/api/message/', data=order_message)
 
         order_data = Order.objects.filter(id=response.data['id'])[0]
@@ -160,10 +167,9 @@ class MessageViewSet(viewsets.ModelViewSet):
                 msg = json.loads(request.data['msg'])
                 anomaly_0 = False if int(msg['anomaly_0']) == 0 else True
                 anomaly_2 = False if int(msg['anomaly_2']) == 0 else True
-                anomaly = [anomaly_0, False, anomaly_2]
 
                 num_orders = len(Order.objects.all()) - len(Order.objects.filter(status=4))
-                if num_orders == 0 and target.tick > target.total_orders:
+                if num_orders == 0 and target.tick > target.order_total:
                     result = {
                         'tick': target.tick,
                         'reward': target.reward,
@@ -185,12 +191,20 @@ class MessageViewSet(viewsets.ModelViewSet):
                 target.reward -= num_orders * target.reward_wait
                 target.tick += 1
 
+                # ORL
                 if dm_type == 'ORL' and target.old_state is not None:
                     target.rl_model.push_optimize(target.old_state, target.old_decision,
                                                   target.reward - target.old_reward, target.get_state())
                     target.old_state = None
                     target.old_reward = target.reward
 
+                # New anomaly
+                if target.current_anomaly[0] == -1 and anomaly_0:
+                    target.current_anomaly[0] = target.tick
+                if target.current_anomaly[2] == -1 and anomaly_2:
+                    target.current_anomaly[2] = target.tick
+
+                # Move c to r
                 c_decision = 3
                 # Decision making
                 if dm_type == 'Random':
@@ -201,8 +215,11 @@ class MessageViewSet(viewsets.ModelViewSet):
                 elif target.need_decision():
                     target.old_state = target.get_state()
                     model = target.rl_model
-                    if dm_type == 'AAAA' and target.anomaly_state() != 0:
-                        model = target.a_rl_models[target.anomaly_state()]
+                    if target.anomaly_state() != 0 and dm_type == 'AAAA':
+                        if target.current_anomaly[0] != -1:
+                            model = target.a_rl_models[0]
+                        else:
+                            model = target.a_rl_models[2]
                     target.old_decision = model.select_tactic(target.get_state(), target.available())
                     c_decision = int(target.old_decision)
 
@@ -214,35 +231,51 @@ class MessageViewSet(viewsets.ModelViewSet):
                 # R to S
                 r_decision = [False] * 3
                 s_items = Inventory.objects.filter(stored=3)
-                shipment_cap = 5 - len(s_items)
+                shipment_cap = 5 - len(s_items) - (3 - target.stuck.count(0))
                 for i in [1, 0, 2]:
                     inventory_list = Inventory.objects.filter(stored=i)
-                    if target.current_anomaly[i] == -1 and len(
-                            inventory_list) != 0 and shipment_cap > 0:
+                    if target.stuck[i] and len(inventory_list) != 0 and shipment_cap > 0:
                         target_item = inventory_list[0]
                         orders = Order.objects.filter(item_type=target_item.item_type, status=2).order_by('made')
-                        if len(orders) != 0 or target.r_wait[i] > target.cap_wait:
-                            r_decision[i] = True
-                            target.count[i] += 1
-                            target.r_wait[i] = 0
+
+                        if len(orders) != 0:
+                            r_decision = True
                             shipment_cap -= 1
+                            target.r_wait[i] = 0
+                            orders[0].status = 3
+                            orders[0].save()
+                        elif target.r_wait[i] > target.cap_wait:
+                            r_decision = True
+                            shipment_cap -= 1
+                            target.r_wait[i] = 0
                         else:
                             target.r_wait[i] += 1
 
-                # Make anomaly
+                # Make stuck
                 for i in [0, 2]:
-                    if target.current_anomaly[i] == -1 and anomaly[i] and r_decision[i]:
-                        target.current_anomaly[i] = target.tick
+                    if target.current_anomaly[i] != -1 and r_decision[i] and target.stuck[i] == 0:
+                        target.stuck[i] = True
                         r_decision[i] = False
+                        target.count[i] += 1
+
+                    elif target.current_anomaly[i] != -1 and target.stuck[i] and target.count[i] < target.anomaly_wait:
+                        target.count[i] += 1
+
+                    elif target.current_anomaly[i] != -1 and target.stuck[i] and target.count[i] == target.anomaly_wait:
+                        target.count[i] = 0
+                        r_decision[i] = True
+                        target.stuck[i] = False
 
                 # Solve anomaly
                 for i in [0, 2]:
-                    if target.current_anomaly[i] != -1 and target.current_anomaly[
-                        i] + target.anomaly_duration < target.tick:
+                    if target.current_anomaly[i] != -1 and target.current_anomaly[i] + target.anomaly_duration < target.tick:
+                        if target.stuck[i]:
+                            r_decision[i] = True
+                            target.stuck[i] = False
+                        target.count[i] = 0
                         target.current_anomaly[i] = -1
-                        r_decision[i] = True
 
-                # S to End
+                # s
                 s_decision = 3
                 if target.recent_s != 0:
                     orders = Order.objects.filter(item_type=target.recent_s, status=3).order_by('made')
@@ -259,7 +292,7 @@ class MessageViewSet(viewsets.ModelViewSet):
                 request = ''
                 for i in range(1, 5):
                     if target.get_inventory(i) < len(Order.objects.filter(item_type=i)):
-                        target.c[i - 1] += 5
+                        target.c[i - 1] += target.item_buy
                         request += str(i) + ' &'
 
                 result = {
@@ -269,10 +302,10 @@ class MessageViewSet(viewsets.ModelViewSet):
                     'c_decision': c_decision,
                     'r_decision': r_decision,
                     's_decision': s_decision,
-                    'tried_0': 1 if r_decision[0] else 0,
-                    'tried_2': 1 if r_decision[2] else 0,
                     'anomaly_0': 1 if target.current_anomaly[0] != -1 else 0,
-                    'anomaly_2': 1 if target.current_anomaly[2] != -1 else 0
+                    'anomaly_2': 1 if target.current_anomaly[2] != -1 else 0,
+                    'stuck_0': 1 if target.stuck[0] else 0,
+                    'stuck_2': 1 if target.stuck[2] else 0
                 }
 
                 target.c_allow = c_decision
@@ -320,10 +353,11 @@ class MessageViewSet(viewsets.ModelViewSet):
                 target_item.save()
 
                 # Modify Order DB
-                target_orders = Order.objects.filter(item_type=target_item.item_type, status=2)
-                if len(target_orders) != 0:
-                    target_orders[0].status = 3
-                    target_orders[0].save()
+                if experiment_type != 'SAS':
+                    target_orders = Order.objects.filter(item_type=target_item.item_type, status=2)
+                    if len(target_orders) != 0:
+                        target_orders[0].status = 3
+                        target_orders[0].save()
 
                 return Response(status=201)
 

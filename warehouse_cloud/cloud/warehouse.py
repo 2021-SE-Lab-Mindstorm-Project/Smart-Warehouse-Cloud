@@ -5,21 +5,29 @@ from .models import Inventory, Order
 class Warehouse:
     def __init__(self, anomaly_aware):
         # config
-        self.total_orders = 20
         self.cap_conveyor = 5
         self.cap_wait = 5
+
         self.reward_order = 30
         self.reward_trash = 70
         self.reward_wait = 1
-        self.anomaly_duration = 10
 
+        self.order_total = 20
+        self.order_delay = 0
+
+        self.anomaly_mtbf = 5
+        self.anomaly_duration = 10
+        self.anomaly_wait = 3
+
+        self.item_buy = 5
+
+        # Warehouse
         self.tick = 0
         self.anomaly_aware = anomaly_aware
         self.rl_model = rl.DQN(path='../model/rl.pth')
-        self.a_rl_models = [None, rl.DQN(path='../model/a_rl_1.pth'),
-                            None, None, rl.DQN(path='../model/a_rl_4.pth'),
-                            rl.DQN(path='../model/a_rl_5.pth'),
-                            None, None]
+        self.a_rl_models = [rl.DQN(path='../model/a_rl_0.pth'),
+                            None,
+                            rl.DQN(path='../model/a_rl_2.pth')]
 
         self.c = [0] * 4
         self.recent_c = 0
@@ -33,6 +41,7 @@ class Warehouse:
         self.r_wait = [0] * 3
         self.s_wait = 0
 
+        self.stuck = [False] * 3
         self.count = [0] * 3
         self.current_anomaly = [-1] * 3
 
