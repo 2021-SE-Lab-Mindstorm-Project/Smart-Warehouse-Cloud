@@ -105,10 +105,10 @@ class OrderViewSet(viewsets.ModelViewSet):
 
         if len(shipment_ready) <= len(order_shipment):
             requests.post(settings['edge_repository_address'] + '/api/message/', data=order_message)
-            order_data.status = 3
+            order_data.status = 2
             order_data.save()
         else:
-            order_data.status = 2
+            order_data.status = 3
             order_data.save()
 
         requests.post(settings['edge_shipment_address'] + '/api/message/', data=order_message)
