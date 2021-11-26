@@ -239,13 +239,13 @@ class MessageViewSet(viewsets.ModelViewSet):
                         target_item = inventory_list[0]
                         orders = Order.objects.filter(item_type=target_item.item_type, status=2).order_by('made')
                         if len(orders) != 0:
-                            r_decision = True
+                            r_decision[i] = True
                             shipment_cap -= 1
                             target.r_wait[i] = 0
                             orders[0].status = 3
                             orders[0].save()
                         elif target.r_wait[i] > target.cap_wait:
-                            r_decision = True
+                            r_decision[i] = True
                             shipment_cap -= 1
                             target.r_wait[i] = 0
                         else:
