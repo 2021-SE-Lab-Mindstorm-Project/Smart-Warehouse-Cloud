@@ -291,7 +291,8 @@ class MessageViewSet(viewsets.ModelViewSet):
                 # Request Item
                 request = ''
                 for i in range(1, 5):
-                    if target.get_inventory(i) < len(Order.objects.filter(item_type=i)):
+                    need = len(Order.objects.filter(item_type=i)) - len(Order.objects.filter(item_type=i, status=4))
+                    if target.get_inventory(i) < need:
                         target.c[i - 1] += target.item_buy
                         request += str(i) + ' &'
 
