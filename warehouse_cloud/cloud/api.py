@@ -232,10 +232,10 @@ class MessageViewSet(viewsets.ModelViewSet):
                 # R to S
                 r_decision = [False] * 3
                 s_items = Inventory.objects.filter(stored=3)
-                shipment_cap = 5 - len(s_items) - (3 - target.stuck.count(True))
+                shipment_cap = target.cap_conveyor - len(s_items) - target.stuck.count(True)
                 for i in [1, 0, 2]:
                     inventory_list = Inventory.objects.filter(stored=i)
-                    if target.stuck[i] and len(inventory_list) != 0 and shipment_cap > 0:
+                    if not target.stuck[i] and len(inventory_list) != 0 and shipment_cap > 0:
                         target_item = inventory_list[0]
                         orders = Order.objects.filter(item_type=target_item.item_type, status=2).order_by('made')
                         if len(orders) != 0:
