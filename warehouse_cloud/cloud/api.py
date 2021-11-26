@@ -105,12 +105,13 @@ class OrderViewSet(viewsets.ModelViewSet):
 
         if len(shipment_ready) <= len(order_shipment):
             requests.post(settings['edge_repository_address'] + '/api/message/', data=order_message)
+            order_data.status = 3
+            order_data.save()
+        else:
+            order_data.status = 2
+            order_data.save()
+
         requests.post(settings['edge_shipment_address'] + '/api/message/', data=order_message)
-
-        order_data = Order.objects.filter(id=response.data['id'])[0]
-        order_data.status += 1
-        order_data.save()
-
         serializer = OrderSerializer(order_data)
         return Response(serializer.data, status=201)
 
@@ -231,13 +232,12 @@ class MessageViewSet(viewsets.ModelViewSet):
                 # R to S
                 r_decision = [False] * 3
                 s_items = Inventory.objects.filter(stored=3)
-                shipment_cap = 5 - len(s_items) - (3 - target.stuck.count(0))
+                shipment_cap = 5 - len(s_items) - (3 - target.stuck.count(True))
                 for i in [1, 0, 2]:
                     inventory_list = Inventory.objects.filter(stored=i)
                     if target.stuck[i] and len(inventory_list) != 0 and shipment_cap > 0:
                         target_item = inventory_list[0]
                         orders = Order.objects.filter(item_type=target_item.item_type, status=2).order_by('made')
-
                         if len(orders) != 0:
                             r_decision = True
                             shipment_cap -= 1
