@@ -298,7 +298,7 @@ class MessageViewSet(viewsets.ModelViewSet):
                         request += str(i) + ' &'
 
                 inventories = []
-                for i in range(3):
+                for i in range(4):
                     items = Inventory.objects.filter(stored=i)
                     ans = ''
                     for item in items:
