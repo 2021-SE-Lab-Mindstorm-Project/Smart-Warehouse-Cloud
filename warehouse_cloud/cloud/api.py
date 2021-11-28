@@ -345,6 +345,9 @@ class MessageViewSet(viewsets.ModelViewSet):
                 item_type = int(msg['item_type'])
                 stored = int(msg['stored'])
 
+                target.c_allow = 3
+                target.recent_c = 0
+
                 # Modify Inventory DB
                 target_item = Inventory(item_type=item_type, stored=stored)
                 target_item.save()
@@ -360,8 +363,6 @@ class MessageViewSet(viewsets.ModelViewSet):
                     return Response(status=204)
 
                 selected_tactic = target.c_allow
-                target.c_allow = 3
-                target.recent_c = 0
                 return Response(int(selected_tactic), status=201)
 
             return Response("Invalid Message Title", status=204)
@@ -369,6 +370,7 @@ class MessageViewSet(viewsets.ModelViewSet):
         elif sender == models.EDGE_REPOSITORY:
             if title == 'Order Processed':
                 stored = int(request.data['msg'])
+                target.r_allow[stored] = False
 
                 # Modify Inventory DB
                 target_item = Inventory.objects.filter(stored=stored)[0]
@@ -389,7 +391,6 @@ class MessageViewSet(viewsets.ModelViewSet):
                 if not target.r_allow[location]:
                     return Response(status=204)
 
-                target.r_allow[location] = False
                 return Response(status=201)
 
             elif title == 'Anomaly Occurred':
@@ -408,7 +409,10 @@ class MessageViewSet(viewsets.ModelViewSet):
                 item_type = int(order_data['item_type'])
                 dest = order_data['dest']
 
-                if dest == 3:
+                target.s_allow = 3
+                target.recent_s = 0
+
+                if dest == -1:
                     target.reward -= target.reward_trash
                 else:
                     # Modify Inventory DB
@@ -432,8 +436,6 @@ class MessageViewSet(viewsets.ModelViewSet):
                     return Response(status=204)
 
                 selected_tactic = target.s_allow
-                target.s_allow = 3
-                target.recent_s = 0
                 return Response(int(selected_tactic), status=201)
 
             return Response("Invalid Message Title", status=204)
