@@ -277,8 +277,8 @@ class MessageViewSet(viewsets.ModelViewSet):
 
                 # s
                 s_decision = 3
-                if len(s_items) != 0:
-                    target_item = s_items[0]
+                if target.recent_s != 0:
+                    target_item = Inventory.objects.filter(item_type=target.recent_s, stored=3)[0]
                     orders = Order.objects.filter(item_type=target_item.item_type, status=3).order_by('made')
                     if len(orders) != 0:
                         s_decision = orders[0].dest
@@ -299,16 +299,17 @@ class MessageViewSet(viewsets.ModelViewSet):
 
                 inventories = []
                 for i in range(4):
-                    items = Inventory.objects.filter(stored=i)
+                    items = Inventory.objects.filter(stored=i).order_by('updated')
                     ans = ''
                     for item in items:
                         ans += str(item.item_type) + ','
                     inventories.append(ans)
 
                 result = {
-                    'tick': target.tick,
+                    'tick': target.tick - 1,
                     'reward': target.reward,
                     'request': request,
+                    'recent_c': target.recent_c,
                     'c_decision': c_decision,
                     'r_decision': r_decision,
                     's_decision': s_decision,
@@ -319,7 +320,15 @@ class MessageViewSet(viewsets.ModelViewSet):
                     'inventory_0': inventories[0],
                     'inventory_1': inventories[1],
                     'inventory_2': inventories[2],
-                    'inventory_3': inventories[3]
+                    'inventory_3': inventories[3],
+                    'order_r_1': len(Order.objects.filter(item_type=1, status=2)),
+                    'order_r_2': len(Order.objects.filter(item_type=2, status=2)),
+                    'order_r_3': len(Order.objects.filter(item_type=3, status=2)),
+                    'order_r_4': len(Order.objects.filter(item_type=4, status=2)),
+                    'order_s_1': len(Order.objects.filter(item_type=1, status=3)),
+                    'order_s_2': len(Order.objects.filter(item_type=2, status=3)),
+                    'order_s_3': len(Order.objects.filter(item_type=3, status=3)),
+                    'order_s_4': len(Order.objects.filter(item_type=4, status=3))
                 }
 
                 target.c_allow = c_decision
