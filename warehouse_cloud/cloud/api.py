@@ -208,21 +208,21 @@ class MessageViewSet(viewsets.ModelViewSet):
                 # Move c to r
                 c_decision = 3
                 # Decision making
-                if dm_type == 'Random':
-                    candidate = target.get_available()
-                    if len(candidate) != 0:
-                        c_decision = random.choice(candidate)
-
-                elif target.need_decision():
-                    target.old_state = target.get_state()
-                    model = target.rl_model
-                    if target.anomaly_state() != 0 and dm_type == 'AAAA':
-                        if target.current_anomaly[0] != -1:
-                            model = target.a_rl_models[0]
-                        else:
-                            model = target.a_rl_models[2]
-                    target.old_decision = model.select_tactic(target.get_state(), target.available())
-                    c_decision = int(target.old_decision)
+                if target.need_decision():
+                    if dm_type == 'Random':
+                        candidate = target.get_available()
+                        if len(candidate) != 0:
+                            c_decision = random.choice(candidate)
+                    else:
+                        target.old_state = target.get_state()
+                        model = target.rl_model
+                        if target.anomaly_state() != 0 and dm_type == 'AAAA':
+                            if target.current_anomaly[0] != -1:
+                                model = target.a_rl_models[0]
+                            else:
+                                model = target.a_rl_models[2]
+                        target.old_decision = model.select_tactic(target.get_state(), target.available())
+                        c_decision = int(target.old_decision)
 
                 elif target.recent_c != 0:
                     avail = target.get_available()
