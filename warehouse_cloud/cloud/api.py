@@ -433,6 +433,7 @@ class MessageViewSet(viewsets.ModelViewSet):
 
                 selected_tactic = target.s_allow
                 target.s_allow = 3
+                target.recent_s = 0
                 return Response(int(selected_tactic), status=201)
 
             return Response("Invalid Message Title", status=204)
