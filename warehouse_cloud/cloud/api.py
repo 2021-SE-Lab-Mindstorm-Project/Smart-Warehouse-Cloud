@@ -416,7 +416,7 @@ class MessageViewSet(viewsets.ModelViewSet):
                     target.reward -= target.reward_trash
                 else:
                     # Modify Inventory DB
-                    target_item = Inventory.objects.filter(stored=models.SHIPMENT)[0]
+                    target_item = Inventory.objects.filter(stored=models.SHIPMENT).order_by('updated')[0]
                     target_item.delete()
 
                     # Modify Order DB
