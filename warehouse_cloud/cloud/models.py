@@ -17,11 +17,13 @@ LEFT = 0
 MIDDLE = 1
 RIGHT = 2
 SHIPMENT = 3
+COMPLETED = 4
 dest_choices = [
     (LEFT, 'Left'),
     (MIDDLE, 'Middle'),
     (RIGHT, 'Right'),
-    (SHIPMENT, 'Shipment')
+    (SHIPMENT, 'Shipment'),
+    (COMPLETED, 'Completed')
 ]
 
 

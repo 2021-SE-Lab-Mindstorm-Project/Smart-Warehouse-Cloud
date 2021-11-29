@@ -7,8 +7,8 @@ from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import serializers, viewsets
 from rest_framework.response import Response
-
 from warehouse_cloud.settings import settings
+
 from . import models, warehouse
 from .models import Sensory, Inventory, Order, Message, Status
 
@@ -416,8 +416,10 @@ class MessageViewSet(viewsets.ModelViewSet):
                     target.reward -= target.reward_trash
                 else:
                     # Modify Inventory DB
-                    target_item = Inventory.objects.filter(item_type=item_type, stored=models.SHIPMENT).order_by('updated')[0]
-                    target_item.delete()
+                    target_item = Inventory.objects.filter(item_type=item_type,
+                                                           stored=models.SHIPMENT).order_by('updated')[0]
+                    target_item.stored = models.COMPLETED
+                    target_item.save()
 
                     # Modify Order DB
                     orders = Order.objects.filter(item_type=item_type, dest=dest, status=3)
