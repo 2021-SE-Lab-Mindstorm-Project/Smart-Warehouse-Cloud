@@ -412,15 +412,15 @@ class MessageViewSet(viewsets.ModelViewSet):
                 target.s_allow = 3
                 target.recent_s = 0
 
+                # Modify Inventory DB
+                target_item = Inventory.objects.filter(item_type=item_type,
+                                                       stored=models.SHIPMENT).order_by('updated')[0]
+                target_item.stored = models.COMPLETED
+                target_item.save()
+
                 if dest == -1:
                     target.reward -= target.reward_trash
                 else:
-                    # Modify Inventory DB
-                    target_item = Inventory.objects.filter(item_type=item_type,
-                                                           stored=models.SHIPMENT).order_by('updated')[0]
-                    target_item.stored = models.COMPLETED
-                    target_item.save()
-
                     # Modify Order DB
                     orders = Order.objects.filter(item_type=item_type, dest=dest, status=3)
                     if len(orders) != 0:
@@ -433,6 +433,31 @@ class MessageViewSet(viewsets.ModelViewSet):
 
             elif title == 'SAS Check':
                 target.recent_s = int(request.data['msg'])
+
+                items = Inventory.objects.filter(item_type=target.recent_s,
+                                                 stored=models.SHIPMENT).order_by('updated')
+                if len(items) == 0:
+                    idx = 0
+                    while idx < 5:
+                        rep = Inventory.objects.filter(stored=1).order_by('updated')
+                        if len(rep) > idx and rep[idx].item_type == target.recent_s:
+                            rep[0].stored = 3
+                            rep[0].save()
+                            break
+
+                        rep = Inventory.objects.filter(stored=0).order_by('updated')
+                        if len(rep) > idx and rep[idx].item_type == target.recent_s:
+                            rep[0].stored = 3
+                            rep[0].save()
+                            break
+
+                        rep = Inventory.objects.filter(stored=2).order_by('updated')
+                        if len(rep) > idx and rep[idx].item_type == target.recent_s:
+                            rep[0].stored = 3
+                            rep[0].save()
+                            break
+
+                        idx += 1
 
                 if target.s_allow == 3:
                     return Response(status=204)
