@@ -103,6 +103,11 @@ class OrderViewSet(viewsets.ModelViewSet):
         shipment_ready = Inventory.objects.filter(item_type=item_type, stored=3)
         order_shipment = Order.objects.filter(item_type=item_type, status=3)
 
+        if experiment_type == 'SAS':
+            for i in range(3):
+                if target.stuck[i]:
+                    shipment_ready += 1
+
         if len(shipment_ready) <= len(order_shipment):
             requests.post(settings['edge_repository_address'] + '/api/message/', data=order_message)
             order_data.status = 2
