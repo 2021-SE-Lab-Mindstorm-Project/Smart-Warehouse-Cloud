@@ -105,7 +105,8 @@ class OrderViewSet(viewsets.ModelViewSet):
 
         if experiment_type == 'SAS':
             for i in range(3):
-                if target.stuck[i]:
+                rep = Inventory.objects.filter(stored=i)
+                if target.stuck[i] and rep[0].item_type == item_type:
                     shipment_ready += 1
 
         if len(shipment_ready) <= len(order_shipment):
