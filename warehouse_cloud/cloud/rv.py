@@ -1,3 +1,4 @@
+import datetime
 import time
 
 from runtime_verification import event, scope, property
@@ -29,5 +30,9 @@ def run_verification():
     for prop in properties:
         prop.check()
 
-    for prop in properties:
-        print(prop.name, prop.status)
+    date_time_name = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
+    with open('rv_log/' + date_time_name + '.txt', 'w') as text_file:
+        for prop in properties:
+            text_file.write(prop.name + '\n')
+            text_file.write(str(prop.status) + '\n')
+            text_file.write('\n')
