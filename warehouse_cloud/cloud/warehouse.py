@@ -24,10 +24,13 @@ class Warehouse:
         # Warehouse
         self.tick = 0
         self.anomaly_aware = anomaly_aware
-        self.rl_model = rl.DQN(path='../model/rl.pth')
-        self.a_rl_models = [rl.DQN(path='../model/a_rl_0.pth'),
-                            None,
-                            rl.DQN(path='../model/a_rl_2.pth')]
+        try:
+            self.rl_model = rl.DQN(path='../model/rl.pth')
+            self.a_rl_models = [rl.DQN(path='../model/a_rl_0.pth'),
+                                None,
+                                rl.DQN(path='../model/a_rl_2.pth')]
+        except:
+            pass
 
         self.c = [0] * 4
         self.recent_c = 0
