@@ -88,7 +88,7 @@ class Warehouse:
         return ans
 
     def get_inventory(self, item):
-        return self.c[item - 1] + len(Inventory.objects.filter(item_type=item))
+        return self.c[item - 1] + len(Inventory.objects.filter(item_type=item, stored__lt=4))
 
     def get_order(self, is_sum=True):
         if is_sum:

@@ -100,7 +100,7 @@ class OrderViewSet(viewsets.ModelViewSet):
                          'msg': json.dumps(response.data)}
 
         item_type = response.data['item_type']
-        shipment_ready = Inventory.objects.filter(item_type=item_type, stored=3)
+        shipment_ready = len(Inventory.objects.filter(item_type=item_type, stored=3))
         order_shipment = Order.objects.filter(item_type=item_type, status=3)
 
         if experiment_type == 'SAS':
@@ -109,13 +109,12 @@ class OrderViewSet(viewsets.ModelViewSet):
                 if target.stuck[i] and rep[0].item_type == item_type:
                     shipment_ready += 1
 
-        if len(shipment_ready) <= len(order_shipment):
+        if shipment_ready <= len(order_shipment):
             requests.post(settings['edge_repository_address'] + '/api/message/', data=order_message)
             order_data.status = 2
-            order_data.save()
         else:
             order_data.status = 3
-            order_data.save()
+        order_data.save()
 
         requests.post(settings['edge_shipment_address'] + '/api/message/', data=order_message)
         serializer = OrderSerializer(order_data)
