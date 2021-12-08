@@ -51,6 +51,7 @@ INSTALLED_APPS = [
     'drf_yasg',
     'corsheaders',
     'sslserver',
+    'django_crontab',
     'cloud'
 ]
 

@@ -6,3 +6,4 @@ django-sslserver~=0.22
 requests>=2.26.0
 torch~=1.10.0
 numpy~=1.21.4
+django-crontab~=0.7.1
