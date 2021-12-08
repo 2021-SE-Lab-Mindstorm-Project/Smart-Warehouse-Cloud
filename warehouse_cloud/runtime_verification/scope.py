@@ -1,5 +1,5 @@
 import datetime
-
+from runtime_verification import event
 
 class Scope:
     def __init__(self, name):
@@ -12,7 +12,7 @@ class Scope:
 
 
 class AfterScope(Scope):
-    def __init__(self, event):
+    def __init__(self, event: event.Event):
         super().__init__("After " + event.name)
         self.end_event = event
 
@@ -28,7 +28,7 @@ class AfterScope(Scope):
 
 
 class BeforeScope(Scope):
-    def __init__(self, event):
+    def __init__(self, event: event.Event):
         super().__init__("Before " + event.name)
         self.start_event = event
         self.is_started = True
@@ -45,7 +45,7 @@ class BeforeScope(Scope):
 
 
 class BetweenScope(Scope):
-    def __init__(self, start_event, end_event):
+    def __init__(self, start_event: event.Event, end_event: event.Event):
         super().__init__("Between " + start_event.name + " and " + end_event.name)
         self.start_event = start_event
         self.end_event = end_event
@@ -66,7 +66,7 @@ class BetweenScope(Scope):
 
 
 class DuringScope(Scope):
-    def __init__(self, event):
+    def __init__(self, event: event.Event):
         super().__init__("During " + event.name)
         self.event = event
 
@@ -75,7 +75,7 @@ class DuringScope(Scope):
 
 
 class GloballyScope(Scope):
-    def __init__(self, event):
+    def __init__(self):
         super().__init__("Globally")
         self.is_started = True
 

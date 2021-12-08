@@ -1,10 +1,10 @@
 import datetime
 
-from runtime_verification import scope
+from runtime_verification import event, scope
 
 
 class Property:
-    def __init__(self, scope, name):
+    def __init__(self, scope: scope.Scope, name):
         self.name = name
         self.scope = scope
         self.status = True
@@ -30,8 +30,8 @@ class Property:
 
 
 class Absence(Property):
-    def __init__(self, event, scope):
-        super().__init__(scope, "It is never the case that " + event.getName() + " holds")
+    def __init__(self, event: event.Event, scope):
+        super().__init__(scope, "It is never the case that " + event.name + " holds")
         self.event = event
 
     def evaluate(self):
@@ -42,12 +42,12 @@ class Absence(Property):
 
 
 class BoundedExistence(Property):
-    def __init__(self, event, scope, target_count, is_most):
+    def __init__(self, event: event.Event, scope, target_count, is_most):
         if is_most:
-            super().__init__(scope, event.getName() + " holds at most " + target_count + " times")
+            super().__init__(scope, event.name + " holds at most " + target_count + " times")
         else:
             self.status = False
-            super().__init__(scope, event.getName() + " holds at least " + target_count + " times")
+            super().__init__(scope, event.name + " holds at least " + target_count + " times")
 
         self.event = event
         self.target_count = target_count
@@ -67,8 +67,8 @@ class BoundedExistence(Property):
 
 
 class Existence(Property):
-    def __init__(self, event, scope):
-        super().__init__(scope, event.getName() + " holds eventually")
+    def __init__(self, event: event.Event, scope):
+        super().__init__(scope, event.name + " holds eventually")
         self.event = event
         self.status = False
 
@@ -79,8 +79,8 @@ class Existence(Property):
 
 
 class MinimumDuration(Property):
-    def __init__(self, event, scope, target):
-        super().__init__(scope, event.getName() + " remains at least " + target)
+    def __init__(self, event: event.Event, scope, target):
+        super().__init__(scope, event.name + " remains at least " + target)
         self.event = event
         self.target = target
         self.started = None
@@ -98,8 +98,8 @@ class MinimumDuration(Property):
 
 
 class MaximumDuration(Property):
-    def __init__(self, event, scope, target):
-        super().__init__(scope, event.getName() + " remains at most " + target)
+    def __init__(self, event: event.Event, scope, target):
+        super().__init__(scope, event.name + " remains at most " + target)
         self.event = event
         self.target = target
         self.started = None
@@ -119,9 +119,9 @@ class MaximumDuration(Property):
 
 
 class Precedence(Property):
-    def __init__(self, effect, cause, scope):
+    def __init__(self, effect: event.Event, cause: event.Event, scope):
         super().__init__(scope,
-                         "If " + effect.getName() + " has occurred, then it must have been " + cause.getName() + " has occurred before")
+                         "If " + effect.name + " has occurred, then it must have been " + cause.name + " has occurred before")
         self.effect = effect
         self.cause = cause
         self.cause_occurred = False
@@ -137,9 +137,9 @@ class Precedence(Property):
 
 
 class Prevention(Property):
-    def __init__(self, effect, cause, scope):
+    def __init__(self, effect: event.Event, cause: event.Event, scope):
         super().__init__(scope,
-                         "If " + cause.getName() + " has occurred, as in response " + effect.getName() + " never holds")
+                         "If " + cause.name + " has occurred, as in response " + effect.name + " never holds")
         self.effect = effect
         self.cause = cause
         self.cause_occurred = False
@@ -155,8 +155,8 @@ class Prevention(Property):
 
 
 class Recurrence(Property):
-    def __init__(self, event, duration):
-        super().__init__(scope, event.getName() + " holds repeatedly at most every " + duration)
+    def __init__(self, event: event.Event, scope, duration):
+        super().__init__(scope, event.name + " holds repeatedly at most every " + duration)
         self.event = event
         self.duration = duration
         self.ongoing = False
@@ -177,9 +177,9 @@ class Recurrence(Property):
 
 
 class Response(Property):
-    def __init__(self, effect, cause, scope):
+    def __init__(self, effect: event.Event, cause: event.Event, scope):
         super().__init__(scope,
-                         "If " + cause.getName() + " has occurred, as in response " + effect.getName() + " eventually holds")
+                         "If " + cause.name + " has occurred, as in response " + effect.name + " eventually holds")
         self.effect = effect
         self.cause = cause
         self.cause_occurred = False
@@ -195,8 +195,8 @@ class Response(Property):
 
 
 class Universality(Property):
-    def __init__(self, event, scope):
-        super().__init__(scope, "It is always the case that " + event.getName() + " holds")
+    def __init__(self, event: event.Event, scope):
+        super().__init__(scope, "It is always the case that " + event.name + " holds")
         self.event = event
 
     def evaluate(self):
@@ -206,8 +206,8 @@ class Universality(Property):
 
 
 class Until(Property):
-    def __init__(self, target, until, scope):
-        super().__init__(scope, target.getName() + " holds without interruption until " + until.getName() + " holds")
+    def __init__(self, target: event.Event, until: event.Event, scope):
+        super().__init__(scope, target.name + " holds without interruption until " + until.name + " holds")
         self.target = target
         self.until = until
 

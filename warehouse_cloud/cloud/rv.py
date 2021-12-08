@@ -3,7 +3,7 @@ import time
 
 from runtime_verification import event, scope, property
 
-globally_scope = scope.GloballyScope(None)
+globally_scope = scope.GloballyScope()
 
 inventory_over_event = event.InventoryOverEvent("Inventory Over")
 absence_property = property.Absence(inventory_over_event, globally_scope)
