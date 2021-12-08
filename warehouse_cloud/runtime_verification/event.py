@@ -9,6 +9,9 @@ class Event:
         return False
 
 class InventoryOverEvent(Event):
+    def __init__(self):
+        super().__init__("The number of items is over the capacity")
+
     def check_hold(self):
         for i in range(4):
             items = Inventory.objects.filter(stored=i)
@@ -18,6 +21,9 @@ class InventoryOverEvent(Event):
         return False
 
 class ItemTypeValidEvent(Event):
+    def __init__(self):
+        super().__init__("Items entering the system are one of red, white, yellow, blue")
+
     def check_hold(self):
         items = Inventory.objects.filter(stored__lt=4)
         for item in items:
@@ -27,9 +33,8 @@ class ItemTypeValidEvent(Event):
         return True
 
 class ItemNumberEvent(Event):
-    def __init__(self, name, x):
-        super().__init__(name)
-        self.name = name
+    def __init__(self, x):
+        super().__init__("Total number of items in the system reaches ”" + str(x))
         self.limit = x
         self.past = False
 

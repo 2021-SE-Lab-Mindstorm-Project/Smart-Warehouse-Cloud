@@ -5,13 +5,13 @@ from runtime_verification import event, scope, property
 
 globally_scope = scope.GloballyScope()
 
-inventory_over_event = event.InventoryOverEvent("Inventory Over")
+inventory_over_event = event.InventoryOverEvent()
 absence_property = property.Absence(inventory_over_event, globally_scope)
 
-item_type_valid_event = event.ItemTypeValidEvent("Item Type Valid")
+item_type_valid_event = event.ItemTypeValidEvent()
 universality_property = property.Universality(item_type_valid_event, globally_scope)
 
-item_number_event = event.ItemNumberEvent("Item number 1", 1)
+item_number_event = event.ItemNumberEvent(1)
 existence_property = property.Existence(item_number_event, globally_scope)
 
 properties = [
