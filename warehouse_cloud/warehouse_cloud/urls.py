@@ -45,4 +45,5 @@ urlpatterns = [
     path('', cloud.views.index, name='index'),
     path('api/', include((router.urls, 'cloud'), namespace='api')),
     path('api/doc/', schema_view.with_ui('swagger', cache_timeout=0)),
+    path('data/', cloud.views.data, name='data'),
 ]

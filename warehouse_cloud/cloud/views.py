@@ -7,6 +7,11 @@ def index(request):
 
     return HttpResponse(template.render())
 
+def data(request):
+    template = loader.get_template('cloud/data.html')
+
+    return HttpResponse(template.render())
+
 def experiment(request):
     template = loader.get_template('cloud/experiment.html')
 

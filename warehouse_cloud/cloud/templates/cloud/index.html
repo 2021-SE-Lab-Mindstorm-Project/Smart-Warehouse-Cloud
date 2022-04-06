@@ -3,7 +3,7 @@
 <head>
     <style>
 
-        .start-stop-zone, .order-zone {
+        .start-stop-zone, .order-zone, .data-stream-zone {
             text-align: center;
         }
 
@@ -67,6 +67,10 @@
         .block:hover {
             color: white;
         }
+
+        .block.data {
+            background-color: #FF8C00;
+        }
     </style>
     <title>Smart Warehouse</title>
 </head>
@@ -96,6 +100,9 @@
         <button class="block order blue" onclick="order_item(4, 1)" type="button">Order Blue to dest. 2</button>
         <button class="block order blue" onclick="order_item(4, 2)" type="button">Order Blue to dest. 3</button>
     </div>
+</div>
+<div class="data-stream-zone">
+    <button class="block data" onclick="location.href = '/data'" type="button">Live Stream</button>
 </div>
 </body>
 <script>
